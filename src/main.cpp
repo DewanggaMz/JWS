@@ -3,6 +3,7 @@
 #include "connection.h"
 #include "server_app.h"
 #include "storage.h"
+#include "prayer_schedule.h"
 
 void setup() {
   Serial.begin(115200);
@@ -17,4 +18,7 @@ void setup() {
 }
 
 void loop() {
+  getPrayerTimes();
+
+  delay(4000);
 }
