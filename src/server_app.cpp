@@ -2,6 +2,7 @@
 
 #include <Arduino.h>
 #include <ESPAsyncWebServer.h>
+#include <AsyncJson.h>
 
 #include "config.h"
 #include "handlers.h"
@@ -22,7 +23,19 @@ void setupServer() {
   // server.serveStatic("/", LittleFS, "/").setDefaultFile("index.html");
 
   server.on("/dummy", HTTP_GET, handleHelloWorldGet);
-  server.on("/database", HTTP_POST, handleDatabasePost, nullptr, collectDatabaseBody);
+  server.on("/konfigurasi_prayer", HTTP_GET, handlePrayerConfigGet);
+
+  AsyncCallbackJsonWebHandler *databaseHandler =
+    new AsyncCallbackJsonWebHandler("/database", handleDatabasePostJson);
+  databaseHandler->setMethod(HTTP_POST);
+  server.addHandler(databaseHandler);
+
+  AsyncCallbackJsonWebHandler *prayerConfigHandler =
+    new AsyncCallbackJsonWebHandler("/konfigurasi_prayer", handlePrayerConfigPostJson);
+  prayerConfigHandler->setMethod(HTTP_POST);
+  
+  server.addHandler(prayerConfigHandler);
+
   server.onNotFound(handleNotFound);
 
   server.begin();

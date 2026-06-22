@@ -1,9 +1,10 @@
 #pragma once
 
+#include <ArduinoJson.h>
 #include <ESPAsyncWebServer.h>
 
 void handleHelloWorldGet(AsyncWebServerRequest *request);
-void collectDatabaseBody(AsyncWebServerRequest *request, uint8_t *data, size_t len,
-                         size_t index, size_t total);
-void handleDatabasePost(AsyncWebServerRequest *request);
+void handleDatabasePostJson(AsyncWebServerRequest *request, JsonVariant &json);
+void handlePrayerConfigGet(AsyncWebServerRequest *request);
+void handlePrayerConfigPostJson(AsyncWebServerRequest *request, JsonVariant &json);
 void handleNotFound(AsyncWebServerRequest *request);

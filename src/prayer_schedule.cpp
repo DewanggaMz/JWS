@@ -1,39 +1,39 @@
 #include "prayer_schedule.h"
 
 #include <PrayerTimes.h>
-#include "config.h"
 
-static const int DAY   = 20;
-static const int MONTH = 6;
-static const int YEAR  = 2026;
-
-const int LATITUDE = -8.245230;
-const int LONGITUDE = 112.600482;
-const int GMT_OFFSET = 7 * 60;
-
+#include "services/prayer_times/prayer_times_service.h"
 
 void getPrayerTimes(
 ) {
-  
-  PrayerTimes pt(LATITUDE, LONGITUDE, GMT_OFFSET);
+  JsonDocument configDocument;
+  if (!loadPrayerTimesConfig(configDocument)) {
+    Serial.println("ERROR: Gagal membaca konfigurasi prayerTimes");
+    return;
+  }
+
+  String message;
+  PrayerTimesConfig config;
+  if (!parsePrayerTimesConfig(configDocument.as<JsonVariantConst>(), config, message)) {
+    Serial.print("ERROR: ");
+    Serial.println(message);
+    return;
+  }
+
+  PrayerTimes pt(config.latitude, config.longitude, config.timezoneOffsetMinutes);
 
   if (!pt.isInitialized()) {
     Serial.print("ERROR: Invalid coordinates for ");
     return;
   }
-  
-  if (pt.isHighLatitude()) {
-    pt.setHighLatitudeRule(NONE);
-  }
-  
-  pt.setCustomMethod(-20.0, -18.0);
-  pt.setAsrMethod(SHAFII);
-  pt.setCalculationMethod(CalculationMethods::INDONESIA);
-  pt.setImsakOffset(10);
-  pt.setDuhaAngle(4);
-  pt.setAdjustments(2, 0, 3, 2, 5, 3);
 
-  PrayerTimesResult result = pt.calculate(DAY, MONTH, YEAR);
+  if (pt.isHighLatitude()) {
+    Serial.println("  * Lokasi high-latitude terdeteksi");
+  }
+
+  applyPrayerTimesConfig(pt, config);
+
+  PrayerTimesResult result = pt.calculate(config.day, config.month, config.year);
 
   if (!result.valid) {
     Serial.print("ERROR: Calculation failed for ");

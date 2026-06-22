@@ -27,13 +27,28 @@ bool prepareDatabaseFile() {
   return true;
 }
 
-bool saveJsonToDatabase(const JsonDocument &json) {
-  File database = LittleFS.open(DATABASE_PATH, FILE_WRITE);
-  if (!database) {
+bool readJsonFile(const char *path, JsonDocument &document) {
+  File file = LittleFS.open(path, FILE_READ);
+  if (!file) {
     return false;
   }
 
-  const size_t written = serializeJsonPretty(json, database);
-  database.close();
+  DeserializationError error = deserializeJson(document, file);
+  file.close();
+  return !error;
+}
+
+bool writeJsonFile(const char *path, const JsonDocument &document) {
+  File file = LittleFS.open(path, FILE_WRITE);
+  if (!file) {
+    return false;
+  }
+
+  const size_t written = serializeJsonPretty(document, file);
+  file.close();
   return written > 0;
+}
+
+bool saveJsonToDatabase(const JsonDocument &json) {
+  return writeJsonFile(DATABASE_PATH, json);
 }

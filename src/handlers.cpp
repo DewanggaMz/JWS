@@ -4,6 +4,7 @@
 
 #include "utils/json_utils.h"
 #include "storage.h"
+#include "services/prayer_times/prayer_times_service.h"
 
 void handleHelloWorldGet(AsyncWebServerRequest *request) {
   JsonDocument response;
@@ -12,46 +13,14 @@ void handleHelloWorldGet(AsyncWebServerRequest *request) {
   sendJsonDocument(request, 200, response);
 }
 
-void collectDatabaseBody(AsyncWebServerRequest *request, uint8_t *data, size_t len,
-                         size_t index, size_t total) {
-  String *body = static_cast<String *>(request->_tempObject);
-
-  if (index == 0) {
-    body = new String();
-    body->reserve(total);
-    request->_tempObject = body;
-  }
-
-  for (size_t i = 0; i < len; i++) {
-    body->concat(static_cast<char>(data[i]));
-  }
-}
-
-void handleDatabasePost(AsyncWebServerRequest *request) {
-  String *body = static_cast<String *>(request->_tempObject);
-
-  if (body == nullptr || body->isEmpty()) {
-    delete body;
-    request->_tempObject = nullptr;
-    sendJsonResponse(request, 400, "Body JSON wajib dikirim");
+void handleDatabasePostJson(AsyncWebServerRequest *request, JsonVariant &json) {
+  if (!json.is<JsonObject>() && !json.is<JsonArray>()) {
+    sendJsonResponse(request, 400, "JSON harus berupa object atau array");
     return;
   }
 
   JsonDocument document;
-  DeserializationError error = deserializeJson(document, *body);
-
-  delete body;
-  request->_tempObject = nullptr;
-
-  if (error) {
-    sendJsonResponse(request, 400, "Body request bukan JSON yang valid");
-    return;
-  }
-
-  if (!document.is<JsonObject>() && !document.is<JsonArray>()) {
-    sendJsonResponse(request, 400, "JSON harus berupa object atau array");
-    return;
-  }
+  document.set(json);
 
   if (!saveJsonToDatabase(document)) {
     sendJsonResponse(request, 500, "Gagal menyimpan data ke LittleFS");
@@ -59,6 +28,39 @@ void handleDatabasePost(AsyncWebServerRequest *request) {
   }
 
   sendJsonResponse(request, 200, "Data berhasil disimpan ke database.json");
+}
+
+void handlePrayerConfigGet(AsyncWebServerRequest *request) {
+  JsonDocument config;
+  if (!loadPrayerTimesConfig(config)) {
+    sendJsonResponse(request, 500, "Gagal membaca konfigurasi prayerTimes");
+    return;
+  }
+
+  JsonDocument response;
+  response["success"] = true;
+  response["prayerTimes"].set(config.as<JsonVariantConst>());
+
+  sendJsonDocument(request, 200, response);
+}
+
+void handlePrayerConfigPostJson(AsyncWebServerRequest *request, JsonVariant &json) {
+  Serial.println("handlePrayerConfigPostJson");
+  String message;
+  if (!updatePrayerTimesConfig(json.as<JsonVariantConst>(), message)) {
+    sendJsonResponse(request, 400, message.c_str());
+    return;
+  }
+
+  JsonDocument config;
+  loadPrayerTimesConfig(config);
+
+  JsonDocument response;
+  response["success"] = true;
+  response["message"] = message;
+  response["prayerTimes"].set(config.as<JsonVariantConst>());
+
+  sendJsonDocument(request, 200, response);
 }
 
 void handleNotFound(AsyncWebServerRequest *request) {
