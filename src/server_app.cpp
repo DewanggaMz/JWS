@@ -9,6 +9,18 @@
 AsyncWebServer server(HTTP_SERVER_PORT);
 
 void setupServer() {
+  DefaultHeaders::Instance().addHeader(
+    "Access-Control-Allow-Origin", "*"
+  );
+  DefaultHeaders::Instance().addHeader(
+    "Access-Control-Allow-Methods", "GET, POST"
+  );
+  DefaultHeaders::Instance().addHeader(
+    "Access-Control-Allow-Headers", "Content-Type, Authorization"
+  );
+
+  // server.serveStatic("/", LittleFS, "/").setDefaultFile("index.html");
+
   server.on("/dummy", HTTP_GET, handleHelloWorldGet);
   server.on("/database", HTTP_POST, handleDatabasePost, nullptr, collectDatabaseBody);
   server.onNotFound(handleNotFound);
