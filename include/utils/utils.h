@@ -4,3 +4,4 @@
 
 const char* getMonthName(int month);
 String formatDate(int day, int month, int year);
+String formatTime(uint8_t hour, uint8_t minute, uint8_t second);

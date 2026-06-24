@@ -21,7 +21,6 @@ void setupServer() {
   );
 
   // server.serveStatic("/", LittleFS, "/").setDefaultFile("index.html");
-
   server.on("/dummy", HTTP_GET, handleHelloWorldGet);
   server.on("/konfigurasi_prayer", HTTP_GET, handlePrayerConfigGet);
 
@@ -33,11 +32,15 @@ void setupServer() {
   AsyncCallbackJsonWebHandler *prayerConfigHandler =
     new AsyncCallbackJsonWebHandler("/konfigurasi_prayer", handlePrayerConfigPostJson);
   prayerConfigHandler->setMethod(HTTP_POST);
-  
   server.addHandler(prayerConfigHandler);
 
-  server.onNotFound(handleNotFound);
+  AsyncCallbackJsonWebHandler *dateTimeAdjustHandler =
+    new AsyncCallbackJsonWebHandler("/time_adjust", handleDateTimeAdjustmentPostJson);
+  dateTimeAdjustHandler->setMethod(HTTP_POST);
+  server.addHandler(dateTimeAdjustHandler);
 
+
+  server.onNotFound(handleNotFound);
   server.begin();
   Serial.printf("HTTP server berjalan di port %u\n", HTTP_SERVER_PORT);
 }

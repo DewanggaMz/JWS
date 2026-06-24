@@ -5,10 +5,29 @@
 #include "utils/json_utils.h"
 #include "storage.h"
 #include "services/prayer_times/prayer_times_service.h"
+#include "date_and_time.h"
+
+void handleNotFound(AsyncWebServerRequest *request) {
+  sendJsonResponse(request, 404, "Endpoint tidak ditemukan");
+}
 
 void handleHelloWorldGet(AsyncWebServerRequest *request) {
   JsonDocument response;
   response["text"] = "hello world";
+
+  sendJsonDocument(request, 200, response);
+}
+
+void handlePrayerConfigGet(AsyncWebServerRequest *request) {
+  JsonDocument config;
+  if (!loadPrayerTimesConfig(config)) {
+    sendJsonResponse(request, 500, "Gagal membaca konfigurasi prayerTimes");
+    return;
+  }
+
+  JsonDocument response;
+  response["success"] = true;
+  response["prayerTimes"].set(config.as<JsonVariantConst>());
 
   sendJsonDocument(request, 200, response);
 }
@@ -30,19 +49,6 @@ void handleDatabasePostJson(AsyncWebServerRequest *request, JsonVariant &json) {
   sendJsonResponse(request, 200, "Data berhasil disimpan ke database.json");
 }
 
-void handlePrayerConfigGet(AsyncWebServerRequest *request) {
-  JsonDocument config;
-  if (!loadPrayerTimesConfig(config)) {
-    sendJsonResponse(request, 500, "Gagal membaca konfigurasi prayerTimes");
-    return;
-  }
-
-  JsonDocument response;
-  response["success"] = true;
-  response["prayerTimes"].set(config.as<JsonVariantConst>());
-
-  sendJsonDocument(request, 200, response);
-}
 
 void handlePrayerConfigPostJson(AsyncWebServerRequest *request, JsonVariant &json) {
   Serial.println("handlePrayerConfigPostJson");
@@ -63,6 +69,17 @@ void handlePrayerConfigPostJson(AsyncWebServerRequest *request, JsonVariant &jso
   sendJsonDocument(request, 200, response);
 }
 
-void handleNotFound(AsyncWebServerRequest *request) {
-  sendJsonResponse(request, 404, "Endpoint tidak ditemukan");
+void handleDateTimeAdjustmentPostJson(AsyncWebServerRequest *request, JsonVariant &json) {
+  Serial.println("handleDateTimeAdjustmentPostJson");
+  String message;
+  if (!updateDateTimeAdjustment(json.as<JsonVariantConst>(), message)) {
+    sendJsonResponse(request, 400, message.c_str());
+    return;
+  }
+
+  JsonDocument response;
+  response["success"] = true;
+  response["message"] = message;
+
+  sendJsonDocument(request, 200, response);
 }

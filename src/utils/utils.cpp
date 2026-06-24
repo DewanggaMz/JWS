@@ -16,3 +16,9 @@ String formatDate(int day, int month, int year) {
   sprintf(buffer, "%s %d, %d", getMonthName(month), day, year);
   return String(buffer);
 }
+
+String formatTime(uint8_t hour, uint8_t minute, uint8_t second) {
+  char buffer[32];
+  sprintf(buffer, "%02d:%02d:%02d", hour, minute, second);
+  return String(buffer);
+}

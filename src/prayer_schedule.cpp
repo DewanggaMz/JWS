@@ -1,8 +1,8 @@
 #include "prayer_schedule.h"
 
 #include <PrayerTimes.h>
-
 #include "services/prayer_times/prayer_times_service.h"
+#include "date_and_time.h"
 
 void getPrayerTimes(
 ) {
@@ -33,7 +33,11 @@ void getPrayerTimes(
 
   applyPrayerTimesConfig(pt, config);
 
-  PrayerTimesResult result = pt.calculate(config.day, config.month, config.year);
+
+  Date dateNow = dayNow();
+  Serial.printf("Prayer times for %d %d, %d\n", dateNow.day, dateNow.month, dateNow.year);
+
+  PrayerTimesResult result = pt.calculate(dateNow.day, dateNow.month, dateNow.year);
 
   if (!result.valid) {
     Serial.print("ERROR: Calculation failed for ");

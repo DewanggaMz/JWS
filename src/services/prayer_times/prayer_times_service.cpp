@@ -10,14 +10,21 @@ bool isKnownCalculationMethod(const String &method) {
   return method == "ISNA" || method == "EGYPT" || method == "MAKKAH"  || method == "INDONESIA" || method == "CUSTOM";
 }
 
+// ==================================================================================================
+
 bool isKnownAsrMethod(const String &method) {
   return method == "SHAFII" || method == "HANAFI";
 }
+
+// ==================================================================================================
 
 bool isKnownHighLatitudeRule(const String &rule) {
   return rule == "NONE" || rule == "MIDDLE_OF_NIGHT" || rule == "ONE_SEVENTH" ||
          rule == "ANGLE_BASED";
 }
+
+
+// ==================================================================================================
 
 void mergeJsonObject(JsonObject target, JsonObjectConst source) {
   for (JsonPairConst item : source) {
@@ -46,6 +53,8 @@ void mergeJsonObject(JsonObject target, JsonObjectConst source) {
   }
 }
 
+// ==================================================================================================
+
 bool loadDefaultPrayerTimesConfig(JsonDocument &config) {
   JsonDocument defaultFile;
   if (readJsonFile(DEFAULT_PRAYER_TIMES_PATH, defaultFile)) {
@@ -66,6 +75,8 @@ bool loadDefaultPrayerTimesConfig(JsonDocument &config) {
   return true;
 }
 
+// ==================================================================================================
+
 void setCalculationMethod(PrayerTimes &prayerTimes, const PrayerTimesConfig &config) {
   if (config.calculationMethod == "ISNA") prayerTimes.setCalculationMethod(CalculationMethods::ISNA);
   else if (config.calculationMethod == "EGYPT") prayerTimes.setCalculationMethod(CalculationMethods::EGYPT);
@@ -82,14 +93,11 @@ void setCalculationMethod(PrayerTimes &prayerTimes, const PrayerTimesConfig &con
   }
 }
 
-}  // namespace
+}
+
+// ==================================================================================================
 
 void setDefaultPrayerTimesConfig(JsonObject target) {
-  JsonObject date = target["date"].to<JsonObject>();
-  date["day"] = 20;
-  date["month"] = 6;
-  date["year"] = 2026;
-
   JsonObject location = target["location"].to<JsonObject>();
   location["latitude"] = -8.245230;
   location["longitude"] = 112.600482;
@@ -107,13 +115,15 @@ void setDefaultPrayerTimesConfig(JsonObject target) {
   calculation["duhaAngle"] = 4.0;
 
   JsonObject adjustments = calculation["adjustments"].to<JsonObject>();
-  adjustments["fajr"] = 2;
+  adjustments["fajr"] = 0;
   adjustments["sunrise"] = 0;
-  adjustments["dhuhr"] = 3;
-  adjustments["asr"] = 2;
-  adjustments["maghrib"] = 5;
-  adjustments["isha"] = 3;
+  adjustments["dhuhr"] = 0;
+  adjustments["asr"] = 0;
+  adjustments["maghrib"] = 0;
+  adjustments["isha"] = 0;
 }
+
+// ==================================================================================================
 
 bool ensurePrayerTimesConfig() {
   JsonDocument database;
@@ -130,6 +140,8 @@ bool ensurePrayerTimesConfig() {
   return saveDatabase(database);
 }
 
+// ==================================================================================================
+
 bool loadPrayerTimesConfig(JsonDocument &config) {
   JsonDocument database;
   loadDatabase(database);
@@ -145,6 +157,9 @@ bool loadPrayerTimesConfig(JsonDocument &config) {
   config.set(database["prayerTimes"]);
   return config.is<JsonObject>();
 }
+
+
+// ==================================================================================================
 
 bool updatePrayerTimesConfig(JsonVariantConst payload, String &message) {
   if (!payload.is<JsonObjectConst>()) {
@@ -203,20 +218,18 @@ bool updatePrayerTimesConfig(JsonVariantConst payload, String &message) {
   return true;
 }
 
+// ==================================================================================================
+
 bool parsePrayerTimesConfig(JsonVariantConst source, PrayerTimesConfig &config, String &message) {
   if (!source.is<JsonObjectConst>()) {
     message = "Konfigurasi prayerTimes tidak valid";
     return false;
   }
 
-  JsonObjectConst date = source["date"];
   JsonObjectConst location = source["location"];
   JsonObjectConst calculation = source["calculation"];
   JsonObjectConst adjustments = calculation["adjustments"];
 
-  config.day = date["day"] | 20;
-  config.month = date["month"] | 6;
-  config.year = date["year"] | 2026;
   config.latitude = location["latitude"] | -8.245230;
   config.longitude = location["longitude"] | 112.600482;
   config.timezoneOffsetMinutes = location["timezoneOffsetMinutes"] | 420;
@@ -229,17 +242,12 @@ bool parsePrayerTimesConfig(JsonVariantConst source, PrayerTimesConfig &config, 
   config.highLatitudeRule = calculation["highLatitudeRule"] | "NONE";
   config.imsakOffsetMinutes = calculation["imsakOffsetMinutes"] | 10;
   config.duhaAngle = calculation["duhaAngle"] | 4.0;
-  config.adjustmentFajr = adjustments["fajr"] | 2;
+  config.adjustmentFajr = adjustments["fajr"] | 0;
   config.adjustmentSunrise = adjustments["sunrise"] | 0;
-  config.adjustmentDhuhr = adjustments["dhuhr"] | 3;
-  config.adjustmentAsr = adjustments["asr"] | 2;
-  config.adjustmentMaghrib = adjustments["maghrib"] | 5;
-  config.adjustmentIsha = adjustments["isha"] | 3;
-
-  if (config.day < 1 || config.day > 31 || config.month < 1 || config.month > 12 || config.year < 2000) {
-    message = "Tanggal konfigurasi prayerTimes tidak valid";
-    return false;
-  }
+  config.adjustmentDhuhr = adjustments["dhuhr"] | 0;
+  config.adjustmentAsr = adjustments["asr"] | 0;
+  config.adjustmentMaghrib = adjustments["maghrib"] | 0;
+  config.adjustmentIsha = adjustments["isha"] | 0;
 
   if (config.latitude < -90.0 || config.latitude > 90.0 ||
       config.longitude < -180.0 || config.longitude > 180.0) {
@@ -264,6 +272,8 @@ bool parsePrayerTimesConfig(JsonVariantConst source, PrayerTimesConfig &config, 
 
   return true;
 }
+
+// ==================================================================================================
 
 void applyPrayerTimesConfig(PrayerTimes &prayerTimes, const PrayerTimesConfig &config) {
   setCalculationMethod(prayerTimes, config);
