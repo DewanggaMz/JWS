@@ -3,6 +3,7 @@
 
 #include <DMD32.h>
 #include "PanelLayout.h"
+#include "prayer_schedule.h"
 
 class Layout1Split : public PanelLayout {
   public:
@@ -12,6 +13,7 @@ class Layout1Split : public PanelLayout {
     void update(const ClockState &clock) override;
     void render(const ClockState &clock) override;
     bool isFinished() const override;
+    void setPrayerSchedule(const PrayerSchedule &schedule);
 
   private:
     enum TopAnimState {
@@ -35,7 +37,10 @@ class Layout1Split : public PanelLayout {
     uint32_t lastTopHoldAt;
     uint32_t lastBottomScrollAt;
     bool finished;
+    char prayerMessages[5][16];
 
+    const char *currentTopMessage() const;
+    void setPrayerMessage(uint8_t index, const char *label, const PrayerScheduleTime &time);
     void resetTopMessagePosition();
     bool topTextNeedsScroll();
     void updateTopAnimation();

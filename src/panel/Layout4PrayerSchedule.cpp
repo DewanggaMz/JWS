@@ -1,141 +1,277 @@
 #include "panel/Layout4PrayerSchedule.h"
 
-#include "panel/BigClockRenderer.h"
+#include <Arduino.h>
+#include <stdio.h>
+#include <string.h>
+
+#include "date_and_time.h"
+#include "fonts/SystemFont5x7.h"
 #include "panel/DisplayConfig.h"
 #include "panel/TextRenderer.h"
 
 namespace {
-const int RIGHT_X = 32;
-const int RIGHT_WIDTH = SCREEN_WIDTH - RIGHT_X;
-const int CELL_WIDTH = RIGHT_WIDTH / 2;
-const int CHAR_WIDTH = 3;
-const int CHAR_SPACING = 1;
-const uint32_t DISPLAY_MS = 10000;
+const int TOP_Y = 0;
+const int TOP_HEIGHT = 8;
+const int BOTTOM_Y = 8;
+const int BOTTOM_HEIGHT = 8;
+const int TOP_CHAR_SPACING = 2;
+const int BOTTOM_CHAR_SPACING = 3;
+const uint32_t TOP_ANIM_MS = 70;
+const uint32_t TOP_HOLD_MS = 4000;
+const uint32_t BOTTOM_SCROLL_MS = 55;
+const uint32_t LIGHT_MS = 45;
 
-struct PrayerTime {
-    const char *text;
-};
+const char bottomMessage[] =
+  "      MARHABAN YA AHLAN WA SAHLAN      "
+  "      SELAMAT DATANG DI MASJID      "
+  "      JAGA SHAF DAN KEKHUSYUKAN IBADAH      ";
 
-const PrayerTime prayerTimes[] = {
-    {"IM 04:20"},
-    {"SB 04:30"},
-    {"DZ 11:55"},
-    {"AS 15:15"},
-    {"MG 17:50"},
-    {"IS 19:05"}
-};
+void uppercaseCopy(char *target, size_t targetSize, const char *source)
+{
+  if (targetSize == 0) {
+    return;
+  }
 
-const uint8_t GLYPH_SPACE[5] = {0b000, 0b000, 0b000, 0b000, 0b000};
-const uint8_t GLYPH_COLON[5] = {0b000, 0b010, 0b000, 0b010, 0b000};
-const uint8_t GLYPH_0[5] = {0b111, 0b101, 0b101, 0b101, 0b111};
-const uint8_t GLYPH_1[5] = {0b010, 0b110, 0b010, 0b010, 0b111};
-const uint8_t GLYPH_2[5] = {0b111, 0b001, 0b111, 0b100, 0b111};
-const uint8_t GLYPH_3[5] = {0b111, 0b001, 0b111, 0b001, 0b111};
-const uint8_t GLYPH_4[5] = {0b101, 0b101, 0b111, 0b001, 0b001};
-const uint8_t GLYPH_5[5] = {0b111, 0b100, 0b111, 0b001, 0b111};
-const uint8_t GLYPH_6[5] = {0b111, 0b100, 0b111, 0b101, 0b111};
-const uint8_t GLYPH_7[5] = {0b111, 0b001, 0b010, 0b010, 0b010};
-const uint8_t GLYPH_8[5] = {0b111, 0b101, 0b111, 0b101, 0b111};
-const uint8_t GLYPH_9[5] = {0b111, 0b101, 0b111, 0b001, 0b111};
-const uint8_t GLYPH_A[5] = {0b010, 0b101, 0b111, 0b101, 0b101};
-const uint8_t GLYPH_B[5] = {0b110, 0b101, 0b110, 0b101, 0b110};
-const uint8_t GLYPH_D[5] = {0b110, 0b101, 0b101, 0b101, 0b110};
-const uint8_t GLYPH_G[5] = {0b111, 0b100, 0b101, 0b101, 0b111};
-const uint8_t GLYPH_I[5] = {0b111, 0b010, 0b010, 0b010, 0b111};
-const uint8_t GLYPH_M[5] = {0b101, 0b111, 0b111, 0b101, 0b101};
-const uint8_t GLYPH_S[5] = {0b111, 0b100, 0b111, 0b001, 0b111};
-const uint8_t GLYPH_Z[5] = {0b111, 0b001, 0b010, 0b100, 0b111};
+  size_t i = 0;
+  for (; source[i] != '\0' && i < targetSize - 1; i++) {
+    char c = source[i];
+    if (c >= 'a' && c <= 'z') {
+      c = c - 'a' + 'A';
+    }
+    target[i] = c;
+  }
+  target[i] = '\0';
+}
 }
 
 Layout4PrayerSchedule::Layout4PrayerSchedule(DMD &display)
     : dmd(display),
+      topMode(TOP_TIME),
+      topAnimState(TOP_ANIM_IN),
+      topTextY(-SYSTEM5x7_HEIGHT),
+      bottomTextX(SCREEN_WIDTH),
+      lightX(0),
       startedAt(0),
-      finished(false)
+      lastTopAnimAt(0),
+      topHoldStartedAt(0),
+      lastBottomScrollAt(0),
+      lastLightAt(0),
+      finished(false),
+      bottomHasEntered(false)
 {
+  topText[0] = '\0';
 }
 
 void Layout4PrayerSchedule::begin()
 {
-    dmd.clearScreen(true);
-    startedAt = millis();
-    finished = false;
+  dmd.selectFont(System5x7);
+  dmd.clearScreen(true);
+
+  topMode = TOP_TIME;
+  topAnimState = TOP_ANIM_IN;
+  topTextY = -SYSTEM5x7_HEIGHT;
+  bottomTextX = SCREEN_WIDTH;
+  lightX = 0;
+  finished = false;
+  bottomHasEntered = false;
+
+  const uint32_t now = millis();
+  startedAt = now;
+  lastTopAnimAt = now;
+  topHoldStartedAt = now;
+  lastBottomScrollAt = now;
+  lastLightAt = now;
+  updateTopText(ClockState{0, false});
 }
 
 void Layout4PrayerSchedule::update(const ClockState &clock)
 {
-    (void)clock;
-    if (millis() - startedAt >= DISPLAY_MS) {
-        finished = true;
-    }
+  updateTopText(clock);
+  updateTopAnimation();
+  updateBottomScroll();
+  updateLightAnimation();
 }
 
 void Layout4PrayerSchedule::render(const ClockState &clock)
 {
-    BigClockRenderer::draw(dmd, clock);
-    drawSchedule();
+  (void)clock;
+  dmd.selectFont(System5x7);
+  drawTop();
+  drawBottom();
+  drawMosqueLight();
 }
 
 bool Layout4PrayerSchedule::isFinished() const
 {
-    return finished;
+  return finished;
 }
 
-void Layout4PrayerSchedule::drawSchedule()
+void Layout4PrayerSchedule::nextTopMode()
 {
-    TextRenderer::clearRegion(dmd, RIGHT_X, 0, RIGHT_WIDTH, SCREEN_HEIGHT);
+  if (topMode == TOP_TIME) {
+    topMode = TOP_DAY;
+  } else if (topMode == TOP_DAY) {
+    topMode = TOP_DATE;
+  } else {
+    topMode = TOP_TIME;
+  }
 
-    for (uint8_t i = 0; i < 6; i++) {
-        const int col = i % 2;
-        const int row = i / 2;
-        const int x = RIGHT_X + (col * CELL_WIDTH);
-        const int y = row * 5;
-        drawCellText(x, y, prayerTimes[i].text);
-    }
+  topAnimState = TOP_ANIM_IN;
+  topTextY = -SYSTEM5x7_HEIGHT;
+  lastTopAnimAt = millis();
 }
 
-void Layout4PrayerSchedule::drawCellText(int x, int y, const char *text)
+void Layout4PrayerSchedule::updateTopText(const ClockState &clock)
 {
-    int cursorX = x;
-    for (uint8_t i = 0; text[i] != '\0'; i++) {
-        drawSmallChar(cursorX, y, text[i]);
-        cursorX += CHAR_WIDTH + CHAR_SPACING;
-    }
+  if (topMode == TOP_TIME) {
+    snprintf(
+      topText,
+      sizeof(topText),
+      "%02u:%02u:%02u",
+      clock.hour(),
+      clock.minute(),
+      static_cast<unsigned int>(clock.seconds % 60UL)
+    );
+    return;
+  }
+
+  Date today = dayNow();
+  if (topMode == TOP_DAY) {
+    uppercaseCopy(topText, sizeof(topText), today.dayName);
+    return;
+  }
+
+  char dayName[8];
+  uppercaseCopy(dayName, sizeof(dayName), today.dayName);
+  snprintf(topText, sizeof(topText), "%02u/%02u/%04u", today.day, today.month, today.year);
 }
 
-void Layout4PrayerSchedule::drawSmallChar(int x, int y, char c)
+void Layout4PrayerSchedule::updateTopAnimation()
 {
-    const uint8_t *glyph = glyphFor(c);
-    for (int row = 0; row < 5; row++) {
-        for (int col = 0; col < 3; col++) {
-            if ((glyph[row] & (1 << (2 - col))) != 0) {
-                dmd.writePixel(x + col, y + row, GRAPHICS_NORMAL, true);
-            }
-        }
+  const uint32_t now = millis();
+
+  if (topAnimState == TOP_ANIM_HOLD) {
+    if (now - topHoldStartedAt >= TOP_HOLD_MS) {
+      topAnimState = TOP_ANIM_OUT;
+      lastTopAnimAt = now;
     }
+    return;
+  }
+
+  if (now - lastTopAnimAt < TOP_ANIM_MS) {
+    return;
+  }
+  lastTopAnimAt = now;
+
+  if (topAnimState == TOP_ANIM_IN) {
+    topTextY++;
+    if (topTextY >= 0) {
+      topTextY = 0;
+      topAnimState = TOP_ANIM_HOLD;
+      topHoldStartedAt = now;
+    }
+    return;
+  }
+
+  topTextY--;
+  if (topTextY <= -SYSTEM5x7_HEIGHT) {
+    nextTopMode();
+  }
 }
 
-const uint8_t *Layout4PrayerSchedule::glyphFor(char c)
+void Layout4PrayerSchedule::updateBottomScroll()
 {
-    switch (c) {
-    case '0': return GLYPH_0;
-    case '1': return GLYPH_1;
-    case '2': return GLYPH_2;
-    case '3': return GLYPH_3;
-    case '4': return GLYPH_4;
-    case '5': return GLYPH_5;
-    case '6': return GLYPH_6;
-    case '7': return GLYPH_7;
-    case '8': return GLYPH_8;
-    case '9': return GLYPH_9;
-    case ':': return GLYPH_COLON;
-    case 'A': return GLYPH_A;
-    case 'B': return GLYPH_B;
-    case 'D': return GLYPH_D;
-    case 'G': return GLYPH_G;
-    case 'I': return GLYPH_I;
-    case 'M': return GLYPH_M;
-    case 'S': return GLYPH_S;
-    case 'Z': return GLYPH_Z;
-    default: return GLYPH_SPACE;
+  const uint32_t now = millis();
+  if (now - lastBottomScrollAt < BOTTOM_SCROLL_MS) {
+    return;
+  }
+
+  lastBottomScrollAt = now;
+  bottomTextX--;
+
+  dmd.selectFont(System5x7);
+  const int textWidth = TextRenderer::textWidth(dmd, bottomMessage, BOTTOM_CHAR_SPACING);
+  if (bottomTextX <= 0) {
+    bottomHasEntered = true;
+  }
+
+  if (bottomTextX < -textWidth) {
+    if (bottomHasEntered) {
+      finished = true;
+      return;
     }
+
+    bottomTextX = SCREEN_WIDTH;
+  }
+}
+
+void Layout4PrayerSchedule::updateLightAnimation()
+{
+  const uint32_t now = millis();
+  if (now - lastLightAt < LIGHT_MS) {
+    return;
+  }
+
+  lastLightAt = now;
+  lightX++;
+  if (lightX >= SCREEN_WIDTH) {
+    lightX = 0;
+  }
+}
+
+void Layout4PrayerSchedule::drawTop()
+{
+  TextRenderer::clearRegion(dmd, 0, TOP_Y, SCREEN_WIDTH, TOP_HEIGHT);
+  if (topMode == TOP_TIME) {
+    drawBoldCenteredTopText(topText);
+  } else {
+    drawCenteredTopText(topText);
+  }
+
+  dmd.writePixel(0, 7, GRAPHICS_NORMAL, true);
+  dmd.writePixel(SCREEN_WIDTH - 1, 7, GRAPHICS_NORMAL, true);
+}
+
+void Layout4PrayerSchedule::drawBottom()
+{
+  TextRenderer::clearRegion(dmd, 0, BOTTOM_Y, SCREEN_WIDTH, BOTTOM_HEIGHT);
+  TextRenderer::drawBoldTextInRegion(
+    dmd,
+    0,
+    BOTTOM_Y,
+    SCREEN_WIDTH,
+    bottomTextX,
+    1,
+    bottomMessage,
+    BOTTOM_CHAR_SPACING
+  );
+}
+
+void Layout4PrayerSchedule::drawCenteredTopText(const char *text)
+{
+  const int textWidth = TextRenderer::textWidth(dmd, text, TOP_CHAR_SPACING);
+  const int x = textWidth < SCREEN_WIDTH ? (SCREEN_WIDTH - textWidth) / 2 : 0;
+  TextRenderer::drawTextInRegion(dmd, 0, TOP_Y, SCREEN_WIDTH, x, topTextY, text, TOP_CHAR_SPACING);
+}
+
+void Layout4PrayerSchedule::drawBoldCenteredTopText(const char *text)
+{
+  const int textWidth = TextRenderer::textWidth(dmd, text, TOP_CHAR_SPACING);
+  const int x = textWidth < SCREEN_WIDTH - 1 ? (SCREEN_WIDTH - textWidth - 1) / 2 : 0;
+  TextRenderer::drawBoldTextInRegion(dmd, 0, TOP_Y, SCREEN_WIDTH, x, topTextY, text, TOP_CHAR_SPACING);
+}
+
+void Layout4PrayerSchedule::drawMosqueLight()
+{
+  for (int i = 0; i < SCREEN_WIDTH; i += 6) {
+    dmd.writePixel(i, 7, GRAPHICS_NORMAL, true);
+  }
+
+  dmd.writePixel(lightX, 7, GRAPHICS_NORMAL, true);
+  if (lightX > 0) {
+    dmd.writePixel(lightX - 1, 7, GRAPHICS_NORMAL, true);
+  }
+  if (lightX + 1 < SCREEN_WIDTH) {
+    dmd.writePixel(lightX + 1, 7, GRAPHICS_NORMAL, true);
+  }
 }

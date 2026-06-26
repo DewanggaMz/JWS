@@ -25,13 +25,19 @@ bool PanelAnimations::addLayout(PanelLayout &layout)
 
 void PanelAnimations::begin(uint8_t hour, uint8_t minute, uint8_t second)
 {
-    clock.seconds = (hour * 3600UL) + (minute * 60UL) + second;
-    clock.colonOn = false;
+    setClock(hour, minute, second);
     lastClockAt = millis();
 
     if (layoutCount > 0) {
         startLayout(0);
     }
+}
+
+void PanelAnimations::setClock(uint8_t hour, uint8_t minute, uint8_t second)
+{
+    clock.seconds = (hour * 3600UL) + (minute * 60UL) + second;
+    clock.colonOn = (second % 2) == 0;
+    lastClockAt = millis();
 }
 
 void PanelAnimations::update()

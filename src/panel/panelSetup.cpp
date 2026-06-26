@@ -12,11 +12,7 @@
 
 static const uint32_t DMD_REFRESH_MS = 1;
 static const uint32_t FRAME_MS = 30;
-
-// Ubah nilai awal ini sesuai jam ketika board dinyalakan.
-static const uint8_t START_HOUR = 12;
-static const uint8_t START_MINUTE = 0;
-static const uint8_t START_SECOND = 0;
+static const uint8_t PANEL_BRIGHTNESS = 200;
 
 DMD dmd(DISPLAYS_ACROSS, DISPLAYS_DOWN);
 Ticker dmdTicker;
@@ -27,8 +23,6 @@ Layout3SlideText layout3(dmd);
 Layout4PrayerSchedule layout4(dmd);
 
 uint32_t lastFrameAt = 0;
-
-
 
 namespace{
   void triggerScan()
@@ -42,15 +36,18 @@ namespace{
   }
 }
 
-void setupPanelInit() {
-  startDmdRefresh();
+void setupPanelInit(const Time &time, const PrayerSchedule &schedule) {
   dmd.clearScreen(true);
-  dmd.setBrightness(50);
+  dmd.setBrightness(PANEL_BRIGHTNESS);
+  layout1.setPrayerSchedule(schedule);
 
   panelAnimations.addLayout(layout1);
-  panelAnimations.addLayout(layout2);
   panelAnimations.addLayout(layout3);
-  panelAnimations.begin(START_HOUR, START_MINUTE, START_SECOND);
+  panelAnimations.addLayout(layout4);
+  panelAnimations.addLayout(layout2);
+  panelAnimations.begin(time.hour, time.minute, time.second);
+
+  startDmdRefresh();
 }
 
 void panelLoop () {
@@ -65,4 +62,12 @@ void panelLoop () {
       lastFrameAt = now;
       panelAnimations.render();
   }
+}
+
+void setPanelClock(uint8_t hour, uint8_t minute, uint8_t second) {
+  panelAnimations.setClock(hour, minute, second);
+}
+
+void setPanelPrayerSchedule(const PrayerSchedule &schedule) {
+  layout1.setPrayerSchedule(schedule);
 }

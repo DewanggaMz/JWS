@@ -31,7 +31,7 @@ void initTime () {
     while (1);
   }
 
-  // rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
+  rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
 }
 
 Time timeNow () {

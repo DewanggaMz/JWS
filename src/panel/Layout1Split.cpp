@@ -5,6 +5,8 @@
 #include "panel/TextRenderer.h"
 #include "fonts/SystemFont5x7.h"
 
+#include <stdio.h>
+
 namespace {
 const int RIGHT_X = 32;
 const int RIGHT_WIDTH = SCREEN_WIDTH - RIGHT_X;
@@ -21,16 +23,8 @@ const uint32_t BOTTOM_SCROLL_MS = 65;
 const int TOP_CHAR_SPACING = 2;
 const int BOTTOM_CHAR_SPACING = 3;
 
-const char *topMessages[] = {
-    "SUBUH 05:00",
-    "DZUHUR 11:00",
-    "ASHAR 14:00",
-    "MAGHRIB 16:00",
-    "ISYA 18:00"
-};
-
-const char bottomMessage[] = "RUNNING TEXT AREA BAWAH  -  KANAN KE KIRI      ";
-const uint8_t topMessageCount = sizeof(topMessages) / sizeof(topMessages[0]);
+const char bottomMessage[] = "MASJID BAITUROHMAH - GUMUKMOJO      ";
+const uint8_t topMessageCount = 5;
 }
 
 Layout1Split::Layout1Split(DMD &display, uint8_t repeatTarget)
@@ -48,6 +42,14 @@ Layout1Split::Layout1Split(DMD &display, uint8_t repeatTarget)
       lastBottomScrollAt(0),
       finished(false)
 {
+    PrayerSchedule schedule{};
+    schedule.subuh = {5, 0, true};
+    schedule.dzuhur = {11, 0, true};
+    schedule.ashar = {14, 0, true};
+    schedule.maghrib = {16, 0, true};
+    schedule.isya = {18, 0, true};
+    schedule.valid = true;
+    setPrayerSchedule(schedule);
 }
 
 void Layout1Split::begin()
@@ -92,7 +94,7 @@ void Layout1Split::resetTopMessagePosition()
 {
     dmd.selectFont(System5x7);
 
-    const char *topText = topMessages[topMessageIndex];
+    const char *topText = currentTopMessage();
     const int topWidth = TextRenderer::textWidth(dmd, topText, TOP_CHAR_SPACING);
     if (topWidth <= RIGHT_WIDTH) {
         topTextX = RIGHT_X + ((RIGHT_WIDTH - topWidth) / 2);
@@ -105,7 +107,7 @@ void Layout1Split::resetTopMessagePosition()
 bool Layout1Split::topTextNeedsScroll()
 {
     dmd.selectFont(System5x7);
-    return TextRenderer::textWidth(dmd, topMessages[topMessageIndex], TOP_CHAR_SPACING) > RIGHT_WIDTH;
+    return TextRenderer::textWidth(dmd, currentTopMessage(), TOP_CHAR_SPACING) > RIGHT_WIDTH;
 }
 
 void Layout1Split::updateTopAnimation()
@@ -126,7 +128,7 @@ void Layout1Split::updateTopAnimation()
         }
         lastTopScrollAt = now;
 
-        const int topWidth = TextRenderer::textWidth(dmd, topMessages[topMessageIndex], TOP_CHAR_SPACING);
+        const int topWidth = TextRenderer::textWidth(dmd, currentTopMessage(), TOP_CHAR_SPACING);
         const int targetX = RIGHT_X - (topWidth - RIGHT_WIDTH);
 
         topTextX--;
@@ -207,7 +209,36 @@ void Layout1Split::drawRightPanel()
     TextRenderer::clearRegion(dmd, RIGHT_X, TOP_Y, RIGHT_WIDTH, TOP_HEIGHT);
     TextRenderer::clearRegion(dmd, RIGHT_X, BOTTOM_Y, RIGHT_WIDTH, BOTTOM_HEIGHT);
 
-    const char *topText = topMessages[topMessageIndex];
+    const char *topText = currentTopMessage();
     TextRenderer::drawTextInRegion(dmd, RIGHT_X, TOP_Y, RIGHT_WIDTH, topTextX, topTextY, topText, TOP_CHAR_SPACING);
     TextRenderer::drawBoldTextInRegion(dmd, RIGHT_X, BOTTOM_Y, RIGHT_WIDTH, bottomTextX, 0, bottomMessage, BOTTOM_CHAR_SPACING);
+}
+
+void Layout1Split::setPrayerSchedule(const PrayerSchedule &schedule)
+{
+    setPrayerMessage(0, "SUBUH", schedule.subuh);
+    setPrayerMessage(1, "DZUHUR", schedule.dzuhur);
+    setPrayerMessage(2, "ASHAR", schedule.ashar);
+    setPrayerMessage(3, "MAGHRIB", schedule.maghrib);
+    setPrayerMessage(4, "ISYA", schedule.isya);
+
+    resetTopMessagePosition();
+}
+
+const char *Layout1Split::currentTopMessage() const
+{
+    return prayerMessages[topMessageIndex];
+}
+
+void Layout1Split::setPrayerMessage(uint8_t index, const char *label, const PrayerScheduleTime &time)
+{
+    if (index >= topMessageCount) {
+        return;
+    }
+
+    if (time.valid) {
+        snprintf(prayerMessages[index], sizeof(prayerMessages[index]), "%s %02u:%02u", label, time.hour, time.minute);
+    } else {
+        snprintf(prayerMessages[index], sizeof(prayerMessages[index]), "%s --:--", label);
+    }
 }

@@ -10,11 +10,10 @@
 unsigned long previousMillis;
 
 void cetakWaktu() {
-  // millis setiap 1 detik
-
-  
   if(millis() - previousMillis >= 1000) {
     Time now = timeNow();
+    setPanelClock(now.hour, now.minute, now.second);
+
     Serial.printf("Current time: %02d:%02d:%02d\n", now.hour, now.minute, now.second);
     Serial.println("=====================================");
     
@@ -23,7 +22,10 @@ void cetakWaktu() {
     Serial.println("=====================================");
     
     if (now.hour == 0 && now.minute == 0 && now.second == 0) {
-      getPrayerTimes();
+      PrayerSchedule schedule = getPrayerTimes();
+      if (schedule.valid) {
+        setPanelPrayerSchedule(schedule);
+      }
     }
     Serial.println("=====================================");
 
@@ -31,25 +33,8 @@ void cetakWaktu() {
   }
 }
 
-void updateDisplay(void *parameter) {
-  while (true) {
-    panelLoop();
-    vTaskDelay(100 / portTICK_PERIOD_MS);
-  }
-}
-
 void setup() {
   Serial.begin(115200);
-
-  xTaskCreatePinnedToCore(
-    updateDisplay,      // fungsi task
-    "updateDisplay",  // nama task
-    4096,         // stack size
-    NULL,         // parameter
-    1,            // priority
-    NULL,         // task handle
-    0             // core ESP32
-  );
 
   if (!initStorage()) {
     Serial.println("LittleFS gagal dimount atau database.json gagal dibuat");
@@ -63,15 +48,15 @@ void setup() {
     return;
   }
 
+  Time now = timeNow();
+  PrayerSchedule schedule = getPrayerTimes();
+
   connectToWiFi();
   setupServer();
-  setupPanelInit();
+  setupPanelInit(now, schedule);
 }
 
 void loop() {
-  
+  panelLoop();
   cetakWaktu();
 }
-
-
-

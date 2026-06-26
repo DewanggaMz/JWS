@@ -2,42 +2,56 @@
 
 #include <Arduino.h>
 #include <WiFi.h>
+#include <esp_wifi.h>
 
 #include "config.h"
 
 void connectToWiFi() {
-  // Serial.printf("Menghubungkan ke WiFi: %s\n", WIFI_SSID);
-  // WiFi.mode(WIFI_STA);
-  // WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+  WiFi.persistent(false);
+  WiFi.setAutoReconnect(true);
+  WiFi.setSleep(false);
+  esp_wifi_set_ps(WIFI_PS_NONE);
 
-  // while (WiFi.status() != WL_CONNECTED) {
-  //   delay(500);
-  //   Serial.print(".");
-  // }
-
-  // Serial.println();
-  // Serial.print("WiFi terhubung. IP address: ");
-  // Serial.println(WiFi.localIP());
-  WiFi.mode(WIFI_AP_STA);
+  WiFi.mode(WIFI_ENABLE_AP_STA ? WIFI_AP_STA : WIFI_STA);
+  WiFi.setTxPower(WIFI_POWER_11dBm);
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
-  WiFi.softAP("esp32", "11223344");
+
+  if (WIFI_ENABLE_AP_STA) {
+    WiFi.softAP(WIFI_AP_SSID, WIFI_AP_PASSWORD);
+  }
+
   unsigned long start = millis();
 
   while (WiFi.status() != WL_CONNECTED) {
-    if (millis() - start > 15000) {
-      Serial.println("Gagal mendapatkan IP Address");
-      return;
+    if (millis() - start > WIFI_CONNECT_TIMEOUT_MS) {
+      Serial.println("Gagal terhubung ke WiFi STA");
+      break;
     }
-    delay(100);
+    delay(50);
   }
 
-  if(!WiFi.localIP() || !WiFi.softAPIP()) {
-    Serial.println("Gagal mendapatkan IP Address");
+  if (WiFi.status() == WL_CONNECTED) {
+    Serial.print("WiFi STA terhubung. IP address: ");
+    Serial.println(WiFi.localIP());
+  } else if (WIFI_ENABLE_AP_FALLBACK && !WIFI_ENABLE_AP_STA) {
+    WiFi.mode(WIFI_AP);
+    WiFi.setSleep(false);
+    esp_wifi_set_ps(WIFI_PS_NONE);
+    WiFi.setTxPower(WIFI_POWER_11dBm);
+
+    if (!WiFi.softAP(WIFI_AP_SSID, WIFI_AP_PASSWORD)) {
+      Serial.println("Gagal menyalakan SoftAP");
+      return;
+    }
+
+    Serial.print("SoftAP aktif. IP address: ");
+    Serial.println(WiFi.softAPIP());
+  } else {
     return;
   }
 
-  Serial.print("WiFi terhubung. IP address: ");
-  Serial.println(WiFi.localIP());
-  Serial.print("SoftAP IP address: ");
-  Serial.println(WiFi.softAPIP());
+  if (WIFI_ENABLE_AP_STA) {
+    Serial.print("SoftAP IP address: ");
+    Serial.println(WiFi.softAPIP());
+  }
 }

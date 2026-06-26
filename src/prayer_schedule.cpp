@@ -4,12 +4,33 @@
 #include "services/prayer_times/prayer_times_service.h"
 #include "date_and_time.h"
 
-void getPrayerTimes(
-) {
+namespace {
+PrayerSchedule emptyPrayerSchedule()
+{
+  PrayerSchedule schedule{};
+  schedule.valid = false;
+  return schedule;
+}
+
+PrayerScheduleTime toPrayerScheduleTime(PrayerTimes &pt, float minutes)
+{
+  int hour = 0;
+  int minute = 0;
+  pt.minutesToTime(minutes, hour, minute);
+
+  PrayerScheduleTime time{};
+  time.hour = hour;
+  time.minute = minute;
+  time.valid = true;
+  return time;
+}
+}
+
+PrayerSchedule getPrayerTimes() {
   JsonDocument configDocument;
   if (!loadPrayerTimesConfig(configDocument)) {
     Serial.println("ERROR: Gagal membaca konfigurasi prayerTimes");
-    return;
+    return emptyPrayerSchedule();
   }
 
   String message;
@@ -17,14 +38,14 @@ void getPrayerTimes(
   if (!parsePrayerTimesConfig(configDocument.as<JsonVariantConst>(), config, message)) {
     Serial.print("ERROR: ");
     Serial.println(message);
-    return;
+    return emptyPrayerSchedule();
   }
 
   PrayerTimes pt(config.latitude, config.longitude, config.timezoneOffsetMinutes);
 
   if (!pt.isInitialized()) {
     Serial.print("ERROR: Invalid coordinates for ");
-    return;
+    return emptyPrayerSchedule();
   }
 
   if (pt.isHighLatitude()) {
@@ -41,56 +62,58 @@ void getPrayerTimes(
 
   if (!result.valid) {
     Serial.print("ERROR: Calculation failed for ");
-    return;
+    return emptyPrayerSchedule();
   }
   Serial.println();
-  
-  int hour, minute;
-  
+
+  PrayerSchedule schedule{};
+  schedule.imsak = toPrayerScheduleTime(pt, result.imsak);
+  schedule.subuh = toPrayerScheduleTime(pt, result.fajr);
+  schedule.terbit = toPrayerScheduleTime(pt, result.sunrise);
+  schedule.duha = toPrayerScheduleTime(pt, result.duha);
+  schedule.dzuhur = toPrayerScheduleTime(pt, result.dhuhr);
+  schedule.ashar = toPrayerScheduleTime(pt, result.asr);
+  schedule.maghrib = toPrayerScheduleTime(pt, result.maghrib);
+  schedule.isya = toPrayerScheduleTime(pt, result.isha);
+  schedule.valid = true;
+
   // Imsak
-  pt.minutesToTime(result.imsak, hour, minute);
   Serial.print("  Imsak                 : ");
-  Serial.println(pt.formatTime24(hour, minute));
+  Serial.printf("%02u:%02u\n", schedule.imsak.hour, schedule.imsak.minute);
   
   // Fajr
-  pt.minutesToTime(result.fajr, hour, minute);
   Serial.print("  Fajr                  : ");
-  Serial.println(pt.formatTime24(hour, minute));
+  Serial.printf("%02u:%02u\n", schedule.subuh.hour, schedule.subuh.minute);
   
   // Sunrise
-  pt.minutesToTime(result.sunrise, hour, minute);
   Serial.print("  Terbit                : ");
-  Serial.println(pt.formatTime24(hour, minute));
+  Serial.printf("%02u:%02u\n", schedule.terbit.hour, schedule.terbit.minute);
   
   // Duha
-  pt.minutesToTime(result.duha, hour, minute);
   Serial.print("  Duha                  : ");
-  Serial.println(pt.formatTime24(hour, minute));
+  Serial.printf("%02u:%02u\n", schedule.duha.hour, schedule.duha.minute);
   
   // Dhuhr
-  pt.minutesToTime(result.dhuhr, hour, minute);
   Serial.print("  Dhuhr                 : ");
-  Serial.println(pt.formatTime24(hour, minute));
+  Serial.printf("%02u:%02u\n", schedule.dzuhur.hour, schedule.dzuhur.minute);
 
   //ashar
-  pt.minutesToTime(result.asr, hour, minute);
   Serial.print("  Ashar                 : ");
-  Serial.println(pt.formatTime24(hour, minute));
+  Serial.printf("%02u:%02u\n", schedule.ashar.hour, schedule.ashar.minute);
   
   // Maghrib
-  pt.minutesToTime(result.maghrib, hour, minute);
   Serial.print("  Maghrib               : ");
-  Serial.println(pt.formatTime24(hour, minute));
+  Serial.printf("%02u:%02u\n", schedule.maghrib.hour, schedule.maghrib.minute);
 
 
-  pt.minutesToTime(result.isha, hour, minute);
   Serial.print("  Isha                  : ");
-  Serial.println(pt.formatTime24(hour, minute));
-
+  Serial.printf("%02u:%02u\n", schedule.isya.hour, schedule.isya.minute);
 
   
   if (pt.isHighLatitude()) {
     Serial.println();
     Serial.println("  * High-latitude adjustments applied");
   }
+
+  return schedule;
 }

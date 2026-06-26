@@ -11,6 +11,7 @@ class PanelAnimations {
 
     bool addLayout(PanelLayout &layout);
     void begin(uint8_t hour, uint8_t minute, uint8_t second);
+    void setClock(uint8_t hour, uint8_t minute, uint8_t second);
     void update();
     void render();
 
