@@ -58,8 +58,8 @@ void mergeJsonObject(JsonObject target, JsonObjectConst source) {
 bool loadDefaultPrayerTimesConfig(JsonDocument &config) {
   JsonDocument defaultFile;
   if (readJsonFile(DEFAULT_PRAYER_TIMES_PATH, defaultFile)) {
-    if (defaultFile["prayerTimes"].is<JsonObject>()) {
-      config.set(defaultFile["prayerTimes"]);
+    if (defaultFile["prayerTimesConfig"].is<JsonObject>()) {
+      config.set(defaultFile["prayerTimesConfig"]);
       return true;
     }
 
@@ -129,13 +129,13 @@ bool ensurePrayerTimesConfig() {
   JsonDocument database;
   loadDatabase(database);
 
-  if (database["prayerTimes"].is<JsonObject>() && database["prayerTimes"].size() > 0) {
+  if (database["prayerTimesConfig"].is<JsonObject>() && database["prayerTimesConfig"].size() > 0) {
     return true;
   }
 
   JsonDocument defaultConfig;
   loadDefaultPrayerTimesConfig(defaultConfig);
-  database["prayerTimes"].set(defaultConfig.as<JsonVariantConst>());
+  database["prayerTimesConfig"].set(defaultConfig.as<JsonVariantConst>());
 
   return saveDatabase(database);
 }
@@ -146,7 +146,7 @@ bool loadPrayerTimesConfig(JsonDocument &config) {
   JsonDocument database;
   loadDatabase(database);
 
-  if (!database["prayerTimes"].is<JsonObject>()) {
+  if (!database["prayerTimesConfig"].is<JsonObject>()) {
     if (!ensurePrayerTimesConfig()) {
       return false;
     }
@@ -154,7 +154,7 @@ bool loadPrayerTimesConfig(JsonDocument &config) {
   }
 
   config.clear();
-  config.set(database["prayerTimes"]);
+  config.set(database["prayerTimesConfig"]);
   return config.is<JsonObject>();
 }
 
@@ -167,8 +167,8 @@ bool updatePrayerTimesConfig(JsonVariantConst payload, String &message) {
     return false;
   }
 
-  JsonVariantConst incoming = payload["prayerTimes"].is<JsonObjectConst>()
-                                ? payload["prayerTimes"]
+  JsonVariantConst incoming = payload["prayerTimesConfig"].is<JsonObjectConst>()
+                                ? payload["prayerTimesConfig"]
                                 : payload;
 
   // print incoming
@@ -179,10 +179,10 @@ bool updatePrayerTimesConfig(JsonVariantConst payload, String &message) {
   JsonDocument database;
   loadDatabase(database);
 
-  if (!database["prayerTimes"].is<JsonObject>()) {
+  if (!database["prayerTimesConfig"].is<JsonObject>()) {
     JsonDocument defaultConfig;
     loadDefaultPrayerTimesConfig(defaultConfig);
-    database["prayerTimes"].set(defaultConfig.as<JsonVariantConst>());
+    database["prayerTimesConfig"].set(defaultConfig.as<JsonVariantConst>());
   }
 
   // print database
@@ -194,7 +194,7 @@ bool updatePrayerTimesConfig(JsonVariantConst payload, String &message) {
   // Serial.print("database prayer :  ");
 
 
-  JsonObject prayerTimes = database["prayerTimes"].as<JsonObject>();
+  JsonObject prayerTimes = database["prayerTimesConfig"].as<JsonObject>();
 
   // print prayerTimes
   String prayerTimesJson;

@@ -1,0 +1,46 @@
+#ifndef LAYOUT1_SPLIT_H
+#define LAYOUT1_SPLIT_H
+
+#include <DMD32.h>
+#include "PanelLayout.h"
+
+class Layout1Split : public PanelLayout {
+  public:
+    explicit Layout1Split(DMD &display, uint8_t repeatTarget = 3);
+
+    void begin() override;
+    void update(const ClockState &clock) override;
+    void render(const ClockState &clock) override;
+    bool isFinished() const override;
+
+  private:
+    enum TopAnimState {
+        TOP_ANIM_IN,
+        TOP_ANIM_PRE_SCROLL_HOLD,
+        TOP_ANIM_SCROLL,
+        TOP_ANIM_HOLD,
+        TOP_ANIM_OUT
+    };
+
+    DMD &dmd;
+    TopAnimState topState;
+    uint8_t repeatTarget;
+    uint8_t repeatCount;
+    uint8_t topMessageIndex;
+    int topTextX;
+    int topTextY;
+    int bottomTextX;
+    uint32_t lastTopAnimAt;
+    uint32_t lastTopScrollAt;
+    uint32_t lastTopHoldAt;
+    uint32_t lastBottomScrollAt;
+    bool finished;
+
+    void resetTopMessagePosition();
+    bool topTextNeedsScroll();
+    void updateTopAnimation();
+    void updateBottomScroll();
+    void drawRightPanel();
+};
+
+#endif

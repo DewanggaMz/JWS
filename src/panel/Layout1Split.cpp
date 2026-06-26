@@ -1,0 +1,213 @@
+#include "panel/Layout1Split.h"
+
+#include "panel/BigClockRenderer.h"
+#include "panel/DisplayConfig.h"
+#include "panel/TextRenderer.h"
+#include "fonts/SystemFont5x7.h"
+
+namespace {
+const int RIGHT_X = 32;
+const int RIGHT_WIDTH = SCREEN_WIDTH - RIGHT_X;
+const int TOP_Y = 0;
+const int TOP_HEIGHT = 8;
+const int BOTTOM_Y = 8;
+const int BOTTOM_HEIGHT = 8;
+
+const uint32_t TOP_ANIM_MS = 70;
+const uint32_t TOP_PRE_SCROLL_HOLD_MS = 900;
+const uint32_t TOP_SCROLL_MS = 90;
+const uint32_t TOP_HOLD_MS = 1800;
+const uint32_t BOTTOM_SCROLL_MS = 65;
+const int TOP_CHAR_SPACING = 2;
+const int BOTTOM_CHAR_SPACING = 3;
+
+const char *topMessages[] = {
+    "SUBUH 05:00",
+    "DZUHUR 11:00",
+    "ASHAR 14:00",
+    "MAGHRIB 16:00",
+    "ISYA 18:00"
+};
+
+const char bottomMessage[] = "RUNNING TEXT AREA BAWAH  -  KANAN KE KIRI      ";
+const uint8_t topMessageCount = sizeof(topMessages) / sizeof(topMessages[0]);
+}
+
+Layout1Split::Layout1Split(DMD &display, uint8_t repeatTarget)
+    : dmd(display),
+      topState(TOP_ANIM_IN),
+      repeatTarget(repeatTarget),
+      repeatCount(0),
+      topMessageIndex(0),
+      topTextX(RIGHT_X),
+      topTextY(-SYSTEM5x7_HEIGHT),
+      bottomTextX(SCREEN_WIDTH),
+      lastTopAnimAt(0),
+      lastTopScrollAt(0),
+      lastTopHoldAt(0),
+      lastBottomScrollAt(0),
+      finished(false)
+{
+}
+
+void Layout1Split::begin()
+{
+    dmd.selectFont(System5x7);
+    dmd.clearScreen(true);
+    topState = TOP_ANIM_IN;
+    repeatCount = 0;
+    topMessageIndex = 0;
+    resetTopMessagePosition();
+    topTextY = -SYSTEM5x7_HEIGHT;
+    bottomTextX = SCREEN_WIDTH;
+    finished = false;
+
+    const uint32_t now = millis();
+    lastTopAnimAt = now;
+    lastTopScrollAt = now;
+    lastTopHoldAt = now;
+    lastBottomScrollAt = now;
+}
+
+void Layout1Split::update(const ClockState &clock)
+{
+    (void)clock;
+    updateTopAnimation();
+    updateBottomScroll();
+}
+
+void Layout1Split::render(const ClockState &clock)
+{
+    dmd.selectFont(System5x7);
+    BigClockRenderer::draw(dmd, clock);
+    drawRightPanel();
+}
+
+bool Layout1Split::isFinished() const
+{
+    return finished;
+}
+
+void Layout1Split::resetTopMessagePosition()
+{
+    dmd.selectFont(System5x7);
+
+    const char *topText = topMessages[topMessageIndex];
+    const int topWidth = TextRenderer::textWidth(dmd, topText, TOP_CHAR_SPACING);
+    if (topWidth <= RIGHT_WIDTH) {
+        topTextX = RIGHT_X + ((RIGHT_WIDTH - topWidth) / 2);
+        return;
+    }
+
+    topTextX = RIGHT_X;
+}
+
+bool Layout1Split::topTextNeedsScroll()
+{
+    dmd.selectFont(System5x7);
+    return TextRenderer::textWidth(dmd, topMessages[topMessageIndex], TOP_CHAR_SPACING) > RIGHT_WIDTH;
+}
+
+void Layout1Split::updateTopAnimation()
+{
+    const uint32_t now = millis();
+
+    if (topState == TOP_ANIM_PRE_SCROLL_HOLD) {
+        if (now - lastTopHoldAt >= TOP_PRE_SCROLL_HOLD_MS) {
+            topState = TOP_ANIM_SCROLL;
+            lastTopScrollAt = now;
+        }
+        return;
+    }
+
+    if (topState == TOP_ANIM_SCROLL) {
+        if (now - lastTopScrollAt < TOP_SCROLL_MS) {
+            return;
+        }
+        lastTopScrollAt = now;
+
+        const int topWidth = TextRenderer::textWidth(dmd, topMessages[topMessageIndex], TOP_CHAR_SPACING);
+        const int targetX = RIGHT_X - (topWidth - RIGHT_WIDTH);
+
+        topTextX--;
+        if (topTextX <= targetX) {
+            topTextX = targetX;
+            topState = TOP_ANIM_HOLD;
+            lastTopHoldAt = now;
+        }
+        return;
+    }
+
+    if (topState == TOP_ANIM_HOLD) {
+        if (now - lastTopHoldAt >= TOP_HOLD_MS) {
+            topState = TOP_ANIM_OUT;
+            lastTopAnimAt = now;
+        }
+        return;
+    }
+
+    if (now - lastTopAnimAt < TOP_ANIM_MS) {
+        return;
+    }
+    lastTopAnimAt = now;
+
+    if (topState == TOP_ANIM_IN) {
+        topTextY++;
+        if (topTextY >= 0) {
+            topTextY = 0;
+            if (topTextNeedsScroll()) {
+                topState = TOP_ANIM_PRE_SCROLL_HOLD;
+                lastTopHoldAt = now;
+            } else {
+                topState = TOP_ANIM_HOLD;
+                lastTopHoldAt = now;
+            }
+        }
+    } else {
+        topTextY--;
+        if (topTextY <= -SYSTEM5x7_HEIGHT) {
+            topMessageIndex++;
+            if (topMessageIndex >= topMessageCount) {
+                repeatCount++;
+                if (repeatCount >= repeatTarget) {
+                    finished = true;
+                    return;
+                }
+
+                topMessageIndex = 0;
+            }
+
+            resetTopMessagePosition();
+            topTextY = -SYSTEM5x7_HEIGHT;
+            topState = TOP_ANIM_IN;
+        }
+    }
+}
+
+void Layout1Split::updateBottomScroll()
+{
+    dmd.selectFont(System5x7);
+
+    const uint32_t now = millis();
+    if (now - lastBottomScrollAt < BOTTOM_SCROLL_MS) {
+        return;
+    }
+    lastBottomScrollAt = now;
+
+    bottomTextX--;
+    if (bottomTextX < RIGHT_X - TextRenderer::textWidth(dmd, bottomMessage, BOTTOM_CHAR_SPACING)) {
+        bottomTextX = SCREEN_WIDTH;
+    }
+}
+
+void Layout1Split::drawRightPanel()
+{
+    dmd.selectFont(System5x7);
+
+    TextRenderer::clearRegion(dmd, RIGHT_X, TOP_Y, RIGHT_WIDTH, TOP_HEIGHT);
+    TextRenderer::clearRegion(dmd, RIGHT_X, BOTTOM_Y, RIGHT_WIDTH, BOTTOM_HEIGHT);
+
+    const char *topText = topMessages[topMessageIndex];
+    TextRenderer::drawTextInRegion(dmd, RIGHT_X, TOP_Y, RIGHT_WIDTH, topTextX, topTextY, topText, TOP_CHAR_SPACING);
+    TextRenderer::drawBoldTextInRegion(dmd, RIGHT_X, BOTTOM_Y, RIGHT_WIDTH, bottomTextX, 0, bottomMessage, BOTTOM_CHAR_SPACING);
+}

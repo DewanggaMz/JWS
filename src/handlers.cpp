@@ -34,7 +34,7 @@ void handlePrayerConfigGet(AsyncWebServerRequest *request) {
 
   JsonDocument response;
   response["success"] = true;
-  response["prayerTimes"].set(config.as<JsonVariantConst>());
+  response["prayerTimesConfig"].set(config.as<JsonVariantConst>());
 
   sendJsonDocument(request, 200, response);
 }
@@ -81,7 +81,7 @@ void handlePrayerConfigPostJson(AsyncWebServerRequest *request, JsonVariant &jso
   JsonDocument response;
   response["success"] = true;
   response["message"] = message;
-  response["prayerTimes"].set(config.as<JsonVariantConst>());
+  response["prayerTimesConfig"].set(config.as<JsonVariantConst>());
 
   sendJsonDocument(request, 200, response);
 }
