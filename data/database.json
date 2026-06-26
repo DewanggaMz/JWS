@@ -1,10 +1,5 @@
 {
   "prayerTimes": {
-    "date": {
-      "day": 20,
-      "month": 6,
-      "year": 2026
-    },
     "location": {
       "latitude": -8.24523,
       "longitude": 112.600482,
@@ -21,12 +16,12 @@
       "imsakOffsetMinutes": 10,
       "duhaAngle": 4,
       "adjustments": {
-        "fajr": 2,
+        "fajr": 0,
         "sunrise": 0,
-        "dhuhr": 3,
-        "asr": 2,
-        "maghrib": 5,
-        "isha": 3
+        "dhuhr": 0,
+        "asr": 0,
+        "maghrib": 0,
+        "isha": 0
       }
     }
   }

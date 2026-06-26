@@ -8,6 +8,13 @@
 #include "date_and_time.h"
 
 void handleNotFound(AsyncWebServerRequest *request) {
+
+  if (request->method() == HTTP_OPTIONS) {
+    request->send(200);
+    return;
+  }
+
+  
   sendJsonResponse(request, 404, "Endpoint tidak ditemukan");
 }
 
@@ -47,6 +54,16 @@ void handleDatabasePostJson(AsyncWebServerRequest *request, JsonVariant &json) {
   }
 
   sendJsonResponse(request, 200, "Data berhasil disimpan ke database.json");
+}
+
+void handleHelloWorldPostJson(AsyncWebServerRequest *request, JsonVariant &json) {
+  Serial.println("handleHelloWorldPostJson");
+  JsonDocument response;
+  response["success"] = true;
+  response["message"] = "hello world";
+  response["payload"].set(json.as<JsonVariantConst>());
+
+  sendJsonDocument(request, 200, response);
 }
 
 

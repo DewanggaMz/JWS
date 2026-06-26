@@ -30,6 +30,8 @@ void initTime () {
     Serial.println("RTC DS3231 tidak ditemukan!");
     while (1);
   }
+
+  // rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
 }
 
 Time timeNow () {

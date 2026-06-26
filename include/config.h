@@ -9,6 +9,6 @@ constexpr const char *DATABASE_PATH = "/database.json";
 constexpr const char *DEFAULT_PRAYER_TIMES_PATH = "/default_prayer_times.json";
 constexpr uint16_t HTTP_SERVER_PORT = 80;
 
-constexpr const int PIN_SDA = 21;
-constexpr const int PIN_SCL = 22;
+constexpr const int PIN_SDA = 16;
+constexpr const int PIN_SCL = 17;
 

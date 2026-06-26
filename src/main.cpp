@@ -9,7 +9,6 @@
 
 void setup() {
   Serial.begin(115200);
-  pinMode(23, OUTPUT);
 
   if (!initStorage()) {
     Serial.println("LittleFS gagal dimount atau database.json gagal dibuat");
@@ -37,12 +36,11 @@ void loop() {
   Serial.printf("Today: %s %02d %02d %04d\n", today.dayName, today.day, today.month, today.year);
   Serial.println("=====================================");
   
-  if (now.hour == 0 && now.minute == 0) {
+  if (now.hour == 0 && now.minute == 0 && now.second == 0) {
     getPrayerTimes();
   }
   Serial.println("=====================================");
 
-  digitalWrite(23, HIGH);
   delay(1000);
-  digitalWrite(23, LOW);
+
 }
