@@ -2,7 +2,7 @@
 
 #include <PrayerTimes.h>
 #include "services/prayer_times/prayer_times_service.h"
-#include "date_and_time.h"
+#include "datetime/date_and_time.h"
 
 namespace {
 PrayerSchedule emptyPrayerSchedule()

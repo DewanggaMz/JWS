@@ -4,7 +4,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "date_and_time.h"
+#include "datetime/date_and_time.h"
 #include "fonts/SystemFont5x7.h"
 #include "panel/DisplayConfig.h"
 #include "panel/TextRenderer.h"
@@ -21,10 +21,12 @@ const uint32_t TOP_HOLD_MS = 4000;
 const uint32_t BOTTOM_SCROLL_MS = 55;
 const uint32_t LIGHT_MS = 45;
 
+// const char bottomMessage[] =
+//   "      12 JUMADIL AKHIR 1448 H      "
+//   "      JAGA KEBERHISAN DAN KEKHUSYUKAN IBADAH      "
+//   "      MASJID BAITUROHMAH-GUMUKMOJO      ";
 const char bottomMessage[] =
-  "      MARHABAN YA AHLAN WA SAHLAN      "
-  "      SELAMAT DATANG DI MASJID      "
-  "      JAGA SHAF DAN KEKHUSYUKAN IBADAH      ";
+  "      12 JUMADIL AKHIR 1448 H      ";
 
 void uppercaseCopy(char *target, size_t targetSize, const char *source)
 {

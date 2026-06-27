@@ -23,7 +23,7 @@ const uint32_t BOTTOM_SCROLL_MS = 65;
 const int TOP_CHAR_SPACING = 2;
 const int BOTTOM_CHAR_SPACING = 3;
 
-const char bottomMessage[] = "MASJID BAITUROHMAH - GUMUKMOJO      ";
+const char bottomMessage[] = "MASJID BAITUROHMAH-GUMUKMOJO      ";
 const uint8_t topMessageCount = 5;
 }
 

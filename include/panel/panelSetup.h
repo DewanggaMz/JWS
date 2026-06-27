@@ -1,7 +1,7 @@
 #pragma once
 
 #include <Arduino.h>
-#include "date_and_time.h"
+#include "datetime/date_and_time.h"
 #include "prayer_schedule.h"
 
 void setupPanelInit(const Time &time, const PrayerSchedule &schedule);

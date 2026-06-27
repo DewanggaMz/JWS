@@ -42,9 +42,9 @@ void setupPanelInit(const Time &time, const PrayerSchedule &schedule) {
   layout1.setPrayerSchedule(schedule);
 
   panelAnimations.addLayout(layout1);
-  panelAnimations.addLayout(layout3);
+  // panelAnimations.addLayout(layout3);
   panelAnimations.addLayout(layout4);
-  panelAnimations.addLayout(layout2);
+  // panelAnimations.addLayout(layout2);
   panelAnimations.begin(time.hour, time.minute, time.second);
 
   startDmdRefresh();

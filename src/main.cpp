@@ -5,9 +5,12 @@
 #include "storage.h"
 #include "prayer_schedule.h"
 #include "services/prayer_times/prayer_times_service.h"
-#include "date_and_time.h"
+#include "datetime/date_and_time.h"
 #include "panel/panelSetup.h"
+#include "datetime/hijriah.h"
+
 unsigned long previousMillis;
+
 
 void cetakWaktu() {
   if(millis() - previousMillis >= 1000) {
@@ -29,19 +32,34 @@ void cetakWaktu() {
     }
     Serial.println("=====================================");
 
+    HijriDate hijri = HijriModule::getHijriDate(
+      today.year,
+      today.month,
+      today.day,
+      1
+    );
+
+    const char* hijriDayName = getHijriMonthName(hijri.month);
+
+    String hijriDate = String(hijri.day);
+    String hijriMonth = String(hijri.month);
+    String hijriYear = String(hijri.year);
+
+    Serial.printf("Hijri: %s %s %s \n",hijriDate.c_str() , hijriDayName , hijriYear.c_str());
+    Serial.println("=====================================");
+
     previousMillis = millis();
   }
 }
 
 void setup() {
   Serial.begin(115200);
-
+  
+  initTime();
   if (!initStorage()) {
     Serial.println("LittleFS gagal dimount atau database.json gagal dibuat");
     return;
   }
-
-  initTime();
 
   if (!ensurePrayerTimesConfig()) {
     Serial.println("Konfigurasi prayerTimes gagal disiapkan");

@@ -5,14 +5,17 @@
 #include "fonts/Arial14.h"
 
 namespace {
-const uint32_t ANIM_MS = 35;
+const uint32_t ANIM_MS = 10;
 const uint32_t HOLD_MS = 1600;
 const int CHAR_SPACING = 2;
 
 const char *messages[] = {
-    "LAYOUT 3",
-    "ANIMASI IN",
-    "ANIMASI OUT"
+    "10 MENIT",
+    "LAGI",
+    "MEMASUKI",
+    "WAKTU",
+    "SHOLAT",
+    "MAGHRIB"
 };
 
 const uint8_t messageCount = sizeof(messages) / sizeof(messages[0]);

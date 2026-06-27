@@ -1,4 +1,4 @@
-#include "date_and_time.h"
+#include "datetime/date_and_time.h"
 
 #include "config.h"
 #include "utils/utils.h"
@@ -31,7 +31,7 @@ void initTime () {
     while (1);
   }
 
-  rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
+  // rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
 }
 
 Time timeNow () {
@@ -62,7 +62,21 @@ bool updateDateTimeAdjustment(JsonVariantConst payload, String &message) {
   uint16_t year = payload["year"].as<uint16_t>();
   uint8_t hour = payload["hour"].as<uint8_t>();
   uint8_t minute = payload["minute"].as<uint8_t>();
-  uint8_t second = payload["second"].as<uint8_t>();
+  u_int8_t second = payload["second"].as<uint8_t>();
+  
+  if(payload["day"].isNull() || payload["month"].isNull() || payload["year"].isNull()) {
+    day = dayNow().day;
+    month = dayNow().month;
+    year = dayNow().year;
+  }
+  
+  if(payload["hour"].isNull() || payload["minute"].isNull() || payload["second"].isNull() ){
+    Time now = timeNow();
+    hour = now.hour;
+    minute = now.minute;
+    second = now.second;
+  }
+
 
   dateTimeCalibration(day, month, year, hour, minute, second);
   message = "Waktu berhasil diatur ke " + formatDate(day, month, year) + " " + formatTime(hour, minute, second);
