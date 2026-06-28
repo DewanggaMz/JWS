@@ -9,8 +9,6 @@ struct HijriDate {
 
 namespace HijriModule {
 
-  long gregorianToJDN(int year, int month, int day);
-
   HijriDate jdnToHijri(long jdn);
 
   HijriDate getHijriDate(int year, int month, int day, int correction);

@@ -8,6 +8,7 @@
 #include "datetime/date_and_time.h"
 #include "panel/panelSetup.h"
 #include "datetime/hijriah.h"
+#include "datetime/pasaran.h"
 
 unsigned long previousMillis;
 
@@ -46,6 +47,10 @@ void cetakWaktu() {
     String hijriYear = String(hijri.year);
 
     Serial.printf("Hijri: %s %s %s \n",hijriDate.c_str() , hijriDayName , hijriYear.c_str());
+    Serial.println("=====================================");
+
+    String pasaran = getPasaran(today.day, today.month, today.year);
+    Serial.printf("Pasaran: %s %s\n", today.dayName, pasaran.c_str());
     Serial.println("=====================================");
 
     previousMillis = millis();

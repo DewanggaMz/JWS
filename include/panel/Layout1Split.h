@@ -1,5 +1,4 @@
-#ifndef LAYOUT1_SPLIT_H
-#define LAYOUT1_SPLIT_H
+#pragma once
 
 #include <DMD32.h>
 #include "PanelLayout.h"
@@ -7,7 +6,7 @@
 
 class Layout1Split : public PanelLayout {
   public:
-    explicit Layout1Split(DMD &display, uint8_t repeatTarget = 3);
+    explicit Layout1Split(DMD &display, uint8_t repeatTarget = 3 );
 
     void begin() override;
     void update(const ClockState &clock) override;
@@ -48,4 +47,3 @@ class Layout1Split : public PanelLayout {
     void drawRightPanel();
 };
 
-#endif

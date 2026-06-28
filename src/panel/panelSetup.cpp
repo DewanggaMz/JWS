@@ -41,7 +41,7 @@ void setupPanelInit(const Time &time, const PrayerSchedule &schedule) {
   dmd.setBrightness(PANEL_BRIGHTNESS);
   layout1.setPrayerSchedule(schedule);
 
-  panelAnimations.addLayout(layout1);
+  // panelAnimations.addLayout(layout1);
   // panelAnimations.addLayout(layout3);
   panelAnimations.addLayout(layout4);
   // panelAnimations.addLayout(layout2);

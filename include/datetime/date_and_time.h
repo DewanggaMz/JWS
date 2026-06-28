@@ -24,3 +24,4 @@ void initTime ();
 Time timeNow ();
 Date dayNow ();
 bool updateDateTimeAdjustment(JsonVariantConst payload, String &message);
+long gregorianToJDN(int year, int month, int day);

@@ -20,7 +20,7 @@ const uint32_t TOP_PRE_SCROLL_HOLD_MS = 900;
 const uint32_t TOP_SCROLL_MS = 90;
 const uint32_t TOP_HOLD_MS = 1800;
 const uint32_t BOTTOM_SCROLL_MS = 65;
-const int TOP_CHAR_SPACING = 2;
+const int TOP_CHAR_SPACING = 1;
 const int BOTTOM_CHAR_SPACING = 3;
 
 const char bottomMessage[] = "MASJID BAITUROHMAH-GUMUKMOJO      ";
@@ -237,7 +237,7 @@ void Layout1Split::setPrayerMessage(uint8_t index, const char *label, const Pray
     }
 
     if (time.valid) {
-        snprintf(prayerMessages[index], sizeof(prayerMessages[index]), "%s %02u:%02u", label, time.hour, time.minute);
+        snprintf(prayerMessages[index], sizeof(prayerMessages[index]), "%s %02u:%02u ", label, time.hour, time.minute);
     } else {
         snprintf(prayerMessages[index], sizeof(prayerMessages[index]), "%s --:--", label);
     }

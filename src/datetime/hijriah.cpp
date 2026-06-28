@@ -1,5 +1,7 @@
 #include "datetime/hijriah.h"
 
+#include "datetime/date_and_time.h"
+
 const char* namaBulanHijriah[] = {
   "Muharram",
   "Safar",
@@ -16,22 +18,6 @@ const char* namaBulanHijriah[] = {
 };
 
 namespace HijriModule {
-  long gregorianToJDN(int year, int month, int day) {
-    int a = (14 - month) / 12;
-    int y = year + 4800 - a;
-    int m = month + 12 * a - 3;
-
-    long jdn = day
-               + (153L * m + 2) / 5
-               + 365L * y
-               + y / 4
-               - y / 100
-               + y / 400
-               - 32045;
-
-    return jdn;
-  }
-
   HijriDate jdnToHijri(long jdn) {
     HijriDate h;
 

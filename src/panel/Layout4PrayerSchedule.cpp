@@ -5,9 +5,11 @@
 #include <string.h>
 
 #include "datetime/date_and_time.h"
+#include "datetime/pasaran.h"
 #include "fonts/SystemFont5x7.h"
 #include "panel/DisplayConfig.h"
 #include "panel/TextRenderer.h"
+
 
 namespace {
 const int TOP_Y = 0;
@@ -15,6 +17,7 @@ const int TOP_HEIGHT = 8;
 const int BOTTOM_Y = 8;
 const int BOTTOM_HEIGHT = 8;
 const int TOP_CHAR_SPACING = 2;
+const int TOP_CHAR_LIGHT_SPACING = 1;
 const int BOTTOM_CHAR_SPACING = 3;
 const uint32_t TOP_ANIM_MS = 70;
 const uint32_t TOP_HOLD_MS = 4000;
@@ -138,14 +141,19 @@ void Layout4PrayerSchedule::updateTopText(const ClockState &clock)
   }
 
   Date today = dayNow();
+  String pasaran = getPasaran(today.day, today.month, today.year);
   if (topMode == TOP_DAY) {
-    uppercaseCopy(topText, sizeof(topText), today.dayName);
+    char dayName[8];
+    uppercaseCopy(dayName, sizeof(dayName), today.dayName);
+
+    char pasaranJawa[8];
+    uppercaseCopy(pasaranJawa, sizeof(pasaranJawa), "kliwon");
+
+    snprintf(topText, sizeof(topText), "%s %s", dayName, pasaranJawa);
     return;
   }
 
-  char dayName[8];
-  uppercaseCopy(dayName, sizeof(dayName), today.dayName);
-  snprintf(topText, sizeof(topText), "%02u/%02u/%04u", today.day, today.month, today.year);
+  snprintf(topText, sizeof(topText), "%02u / %02u / %04u", today.day, today.month, today.year);
 }
 
 void Layout4PrayerSchedule::updateTopAnimation()
@@ -251,9 +259,9 @@ void Layout4PrayerSchedule::drawBottom()
 
 void Layout4PrayerSchedule::drawCenteredTopText(const char *text)
 {
-  const int textWidth = TextRenderer::textWidth(dmd, text, TOP_CHAR_SPACING);
+  const int textWidth = TextRenderer::textWidth(dmd, text, TOP_CHAR_LIGHT_SPACING);
   const int x = textWidth < SCREEN_WIDTH ? (SCREEN_WIDTH - textWidth) / 2 : 0;
-  TextRenderer::drawTextInRegion(dmd, 0, TOP_Y, SCREEN_WIDTH, x, topTextY, text, TOP_CHAR_SPACING);
+  TextRenderer::drawTextInRegion(dmd, 0, TOP_Y, SCREEN_WIDTH, x, topTextY, text, TOP_CHAR_LIGHT_SPACING);
 }
 
 void Layout4PrayerSchedule::drawBoldCenteredTopText(const char *text)
@@ -265,7 +273,7 @@ void Layout4PrayerSchedule::drawBoldCenteredTopText(const char *text)
 
 void Layout4PrayerSchedule::drawMosqueLight()
 {
-  for (int i = 0; i < SCREEN_WIDTH; i += 6) {
+  for (int i = 0; i < SCREEN_WIDTH; i += 12) {
     dmd.writePixel(i, 7, GRAPHICS_NORMAL, true);
   }
 
