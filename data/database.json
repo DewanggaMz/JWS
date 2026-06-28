@@ -27,5 +27,26 @@
   },
   "hijriConfig": {
     "correct": 1
+  },
+  "panelMessages": {
+    "layout1": {
+      "bottom": "MASJID BAITUROHMAH-GUMUKMOJO      "
+    },
+    "layout2": {
+      "running": "LAYOUT 2  -  INFORMASI BERJALAN DI 3 PANEL P10      "
+    },
+    "layout3": {
+      "slides": [
+        "10 MENIT",
+        "LAGI",
+        "MEMASUKI",
+        "WAKTU",
+        "SHOLAT",
+        "MAGHRIB"
+      ]
+    },
+    "layout4": {
+      "bottom": "      12 JUMADIL AKHIR 1448 H      "
+    }
   }
 }

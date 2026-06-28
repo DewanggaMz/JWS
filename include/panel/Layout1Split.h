@@ -6,7 +6,7 @@
 
 class Layout1Split : public PanelLayout {
   public:
-    explicit Layout1Split(DMD &display, uint8_t repeatTarget = 3 );
+    Layout1Split(DMD &display, const String &bottomMessage, uint8_t repeatTarget = 3);
 
     void begin() override;
     void update(const ClockState &clock) override;
@@ -36,6 +36,7 @@ class Layout1Split : public PanelLayout {
     uint32_t lastTopHoldAt;
     uint32_t lastBottomScrollAt;
     bool finished;
+    String bottomMessage;
     char prayerMessages[5][16];
 
     const char *currentTopMessage() const;

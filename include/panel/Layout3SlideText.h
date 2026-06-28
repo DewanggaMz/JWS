@@ -6,7 +6,7 @@
 
 class Layout3SlideText : public PanelLayout {
   public:
-    explicit Layout3SlideText(DMD &display);
+    Layout3SlideText(DMD &display, const String messages[], uint8_t messageCount);
 
     void begin() override;
     void update(const ClockState &clock) override;
@@ -27,6 +27,8 @@ class Layout3SlideText : public PanelLayout {
     uint32_t lastAnimAt;
     uint32_t lastHoldAt;
     bool finished;
+    String messages[12];
+    uint8_t messageCount;
 };
 
 #endif

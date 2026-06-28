@@ -17,10 +17,10 @@ static const uint8_t PANEL_BRIGHTNESS = 200;
 DMD dmd(DISPLAYS_ACROSS, DISPLAYS_DOWN);
 Ticker dmdTicker;
 PanelAnimations panelAnimations(dmd);
-Layout1Split layout1(dmd, 3);
-Layout2FullRunning layout2(dmd);
-Layout3SlideText layout3(dmd);
-Layout4PrayerSchedule layout4(dmd);
+Layout1Split *layout1 = nullptr;
+Layout2FullRunning *layout2 = nullptr;
+Layout3SlideText *layout3 = nullptr;
+Layout4PrayerSchedule *layout4 = nullptr;
 
 uint32_t lastFrameAt = 0;
 
@@ -36,15 +36,29 @@ namespace{
   }
 }
 
-void setupPanelInit(const Time &time, const PrayerSchedule &schedule) {
+void setupPanelInit(
+  const Time &time,
+  const PrayerSchedule &schedule,
+  const PanelMessages &messages
+) {
   dmd.clearScreen(true);
   dmd.setBrightness(PANEL_BRIGHTNESS);
-  layout1.setPrayerSchedule(schedule);
 
-  // panelAnimations.addLayout(layout1);
-  // panelAnimations.addLayout(layout3);
-  panelAnimations.addLayout(layout4);
-  // panelAnimations.addLayout(layout2);
+  layout1 = new Layout1Split(dmd, messages.layout1Bottom, 3);
+  layout2 = new Layout2FullRunning(dmd, messages.layout2Running);
+  layout3 = new Layout3SlideText(
+    dmd,
+    messages.layout3Slides,
+    messages.layout3SlideCount
+  );
+  layout4 = new Layout4PrayerSchedule(dmd, messages.layout4Bottom);
+
+  layout1->setPrayerSchedule(schedule);
+
+  panelAnimations.addLayout(*layout1);
+  panelAnimations.addLayout(*layout3);
+  panelAnimations.addLayout(*layout4);
+  panelAnimations.addLayout(*layout2);
   panelAnimations.begin(time.hour, time.minute, time.second);
 
   startDmdRefresh();
@@ -69,5 +83,7 @@ void setPanelClock(uint8_t hour, uint8_t minute, uint8_t second) {
 }
 
 void setPanelPrayerSchedule(const PrayerSchedule &schedule) {
-  layout1.setPrayerSchedule(schedule);
+  if (layout1 != nullptr) {
+    layout1->setPrayerSchedule(schedule);
+  }
 }

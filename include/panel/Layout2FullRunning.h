@@ -6,7 +6,7 @@
 
 class Layout2FullRunning : public PanelLayout {
   public:
-    explicit Layout2FullRunning(DMD &display);
+    Layout2FullRunning(DMD &display, const String &message);
 
     void begin() override;
     void update(const ClockState &clock) override;
@@ -18,6 +18,7 @@ class Layout2FullRunning : public PanelLayout {
     int textX;
     uint32_t lastScrollAt;
     bool finished;
+    String message;
 };
 
 #endif

@@ -23,11 +23,10 @@ const uint32_t BOTTOM_SCROLL_MS = 65;
 const int TOP_CHAR_SPACING = 1;
 const int BOTTOM_CHAR_SPACING = 3;
 
-const char bottomMessage[] = "MASJID BAITUROHMAH-GUMUKMOJO      ";
 const uint8_t topMessageCount = 5;
 }
 
-Layout1Split::Layout1Split(DMD &display, uint8_t repeatTarget)
+Layout1Split::Layout1Split(DMD &display, const String &bottomMessage, uint8_t repeatTarget)
     : dmd(display),
       topState(TOP_ANIM_IN),
       repeatTarget(repeatTarget),
@@ -40,7 +39,8 @@ Layout1Split::Layout1Split(DMD &display, uint8_t repeatTarget)
       lastTopScrollAt(0),
       lastTopHoldAt(0),
       lastBottomScrollAt(0),
-      finished(false)
+      finished(false),
+      bottomMessage(bottomMessage)
 {
     PrayerSchedule schedule{};
     schedule.subuh = {5, 0, true};
@@ -197,7 +197,7 @@ void Layout1Split::updateBottomScroll()
     lastBottomScrollAt = now;
 
     bottomTextX--;
-    if (bottomTextX < RIGHT_X - TextRenderer::textWidth(dmd, bottomMessage, BOTTOM_CHAR_SPACING)) {
+    if (bottomTextX < RIGHT_X - TextRenderer::textWidth(dmd, bottomMessage.c_str(), BOTTOM_CHAR_SPACING)) {
         bottomTextX = SCREEN_WIDTH;
     }
 }
@@ -211,7 +211,16 @@ void Layout1Split::drawRightPanel()
 
     const char *topText = currentTopMessage();
     TextRenderer::drawTextInRegion(dmd, RIGHT_X, TOP_Y, RIGHT_WIDTH, topTextX, topTextY, topText, TOP_CHAR_SPACING);
-    TextRenderer::drawBoldTextInRegion(dmd, RIGHT_X, BOTTOM_Y, RIGHT_WIDTH, bottomTextX, 0, bottomMessage, BOTTOM_CHAR_SPACING);
+    TextRenderer::drawBoldTextInRegion(
+        dmd,
+        RIGHT_X,
+        BOTTOM_Y,
+        RIGHT_WIDTH,
+        bottomTextX,
+        0,
+        bottomMessage.c_str(),
+        BOTTOM_CHAR_SPACING
+    );
 }
 
 void Layout1Split::setPrayerSchedule(const PrayerSchedule &schedule)

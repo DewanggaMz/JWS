@@ -6,7 +6,7 @@
 
 class Layout4PrayerSchedule : public PanelLayout {
   public:
-    explicit Layout4PrayerSchedule(DMD &display);
+    Layout4PrayerSchedule(DMD &display, const String &bottomMessage);
 
     void begin() override;
     void update(const ClockState &clock) override;
@@ -40,6 +40,7 @@ class Layout4PrayerSchedule : public PanelLayout {
     bool finished;
     bool bottomHasEntered;
     char topText[24];
+    String bottomMessage;
 
     void nextTopMode();
     void updateTopText(const ClockState &clock);

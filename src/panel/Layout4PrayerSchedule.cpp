@@ -24,13 +24,6 @@ const uint32_t TOP_HOLD_MS = 4000;
 const uint32_t BOTTOM_SCROLL_MS = 55;
 const uint32_t LIGHT_MS = 45;
 
-// const char bottomMessage[] =
-//   "      12 JUMADIL AKHIR 1448 H      "
-//   "      JAGA KEBERHISAN DAN KEKHUSYUKAN IBADAH      "
-//   "      MASJID BAITUROHMAH-GUMUKMOJO      ";
-const char bottomMessage[] =
-  "      12 JUMADIL AKHIR 1448 H      ";
-
 void uppercaseCopy(char *target, size_t targetSize, const char *source)
 {
   if (targetSize == 0) {
@@ -49,7 +42,7 @@ void uppercaseCopy(char *target, size_t targetSize, const char *source)
 }
 }
 
-Layout4PrayerSchedule::Layout4PrayerSchedule(DMD &display)
+Layout4PrayerSchedule::Layout4PrayerSchedule(DMD &display, const String &bottomMessage)
     : dmd(display),
       topMode(TOP_TIME),
       topAnimState(TOP_ANIM_IN),
@@ -62,7 +55,8 @@ Layout4PrayerSchedule::Layout4PrayerSchedule(DMD &display)
       lastBottomScrollAt(0),
       lastLightAt(0),
       finished(false),
-      bottomHasEntered(false)
+      bottomHasEntered(false),
+      bottomMessage(bottomMessage)
 {
   topText[0] = '\0';
 }
@@ -200,7 +194,7 @@ void Layout4PrayerSchedule::updateBottomScroll()
   bottomTextX--;
 
   dmd.selectFont(System5x7);
-  const int textWidth = TextRenderer::textWidth(dmd, bottomMessage, BOTTOM_CHAR_SPACING);
+  const int textWidth = TextRenderer::textWidth(dmd, bottomMessage.c_str(), BOTTOM_CHAR_SPACING);
   if (bottomTextX <= 0) {
     bottomHasEntered = true;
   }
@@ -252,7 +246,7 @@ void Layout4PrayerSchedule::drawBottom()
     SCREEN_WIDTH,
     bottomTextX,
     1,
-    bottomMessage,
+    bottomMessage.c_str(),
     BOTTOM_CHAR_SPACING
   );
 }

@@ -8,28 +8,31 @@ namespace {
 const uint32_t ANIM_MS = 10;
 const uint32_t HOLD_MS = 1600;
 const int CHAR_SPACING = 2;
-
-const char *messages[] = {
-    "10 MENIT",
-    "LAGI",
-    "MEMASUKI",
-    "WAKTU",
-    "SHOLAT",
-    "MAGHRIB"
-};
-
-const uint8_t messageCount = sizeof(messages) / sizeof(messages[0]);
 }
 
-Layout3SlideText::Layout3SlideText(DMD &display)
+Layout3SlideText::Layout3SlideText(
+    DMD &display,
+    const String initialMessages[],
+    uint8_t initialMessageCount
+)
     : dmd(display),
       slideState(SLIDE_ANIM_IN),
       messageIndex(0),
       textX(-SCREEN_WIDTH),
       lastAnimAt(0),
       lastHoldAt(0),
-      finished(false)
+      finished(false),
+      messageCount(min(initialMessageCount, static_cast<uint8_t>(12)))
 {
+    if (messageCount == 0) {
+        messages[0] = " ";
+        messageCount = 1;
+        return;
+    }
+
+    for (uint8_t i = 0; i < messageCount; i++) {
+        messages[i] = initialMessages[i];
+    }
 }
 
 void Layout3SlideText::begin()
@@ -38,7 +41,7 @@ void Layout3SlideText::begin()
     dmd.clearScreen(true);
     slideState = SLIDE_ANIM_IN;
     messageIndex = 0;
-    textX = -TextRenderer::textWidth(dmd, messages[messageIndex], CHAR_SPACING);
+    textX = -TextRenderer::textWidth(dmd, messages[messageIndex].c_str(), CHAR_SPACING);
     finished = false;
 
     const uint32_t now = millis();
@@ -51,7 +54,7 @@ void Layout3SlideText::update(const ClockState &clock)
     (void)clock;
     dmd.selectFont(Arial_14);
 
-    const char *text = messages[messageIndex];
+    const char *text = messages[messageIndex].c_str();
     const int targetX = max(0, (SCREEN_WIDTH - TextRenderer::textWidth(dmd, text, CHAR_SPACING)) / 2);
     const uint32_t now = millis();
 
@@ -84,7 +87,7 @@ void Layout3SlideText::update(const ClockState &clock)
                 return;
             }
 
-            textX = -TextRenderer::textWidth(dmd, messages[messageIndex], CHAR_SPACING);
+            textX = -TextRenderer::textWidth(dmd, messages[messageIndex].c_str(), CHAR_SPACING);
             slideState = SLIDE_ANIM_IN;
         }
     }
@@ -95,7 +98,16 @@ void Layout3SlideText::render(const ClockState &clock)
     (void)clock;
     dmd.selectFont(Arial_14);
     TextRenderer::clearRegion(dmd, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
-    TextRenderer::drawBoldTextInRegion(dmd, 0, 0, SCREEN_WIDTH, textX, 1, messages[messageIndex], CHAR_SPACING);
+    TextRenderer::drawBoldTextInRegion(
+        dmd,
+        0,
+        0,
+        SCREEN_WIDTH,
+        textX,
+        1,
+        messages[messageIndex].c_str(),
+        CHAR_SPACING
+    );
 }
 
 bool Layout3SlideText::isFinished() const
