@@ -51,14 +51,21 @@ void setupPanelInit(
     messages.layout3Slides,
     messages.layout3SlideCount
   );
-  layout4 = new Layout4PrayerSchedule(dmd, messages.layout4Bottom);
+  layout4 = new Layout4PrayerSchedule(
+    dmd,
+    messages.layout4Running,
+    messages.layout4ShowPasaran,
+    messages.layout4ShowHijriDate,
+    messages.layout4RepeatCount,
+    messages.layout4HijriCorrection
+  );
 
   layout1->setPrayerSchedule(schedule);
 
-  panelAnimations.addLayout(*layout1);
-  panelAnimations.addLayout(*layout3);
+  // panelAnimations.addLayout(*layout1);
+  // panelAnimations.addLayout(*layout3);
   panelAnimations.addLayout(*layout4);
-  panelAnimations.addLayout(*layout2);
+  // panelAnimations.addLayout(*layout2);
   panelAnimations.begin(time.hour, time.minute, time.second);
 
   startDmdRefresh();

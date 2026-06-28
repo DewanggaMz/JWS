@@ -9,5 +9,9 @@ struct PanelMessages {
     String layout2Running;
     String layout3Slides[MAX_LAYOUT3_SLIDES];
     uint8_t layout3SlideCount;
-    String layout4Bottom;
+    bool layout4ShowPasaran;
+    bool layout4ShowHijriDate;
+    uint8_t layout4RepeatCount;
+    int layout4HijriCorrection;
+    String layout4Running;
 };

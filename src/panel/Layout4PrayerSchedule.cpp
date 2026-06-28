@@ -5,6 +5,7 @@
 #include <string.h>
 
 #include "datetime/date_and_time.h"
+#include "datetime/hijriah.h"
 #include "datetime/pasaran.h"
 #include "fonts/SystemFont5x7.h"
 #include "panel/DisplayConfig.h"
@@ -42,23 +43,37 @@ void uppercaseCopy(char *target, size_t targetSize, const char *source)
 }
 }
 
-Layout4PrayerSchedule::Layout4PrayerSchedule(DMD &display, const String &bottomMessage)
+Layout4PrayerSchedule::Layout4PrayerSchedule(
+  DMD &display,
+  const String &runningMessage,
+  bool showPasaran,
+  bool showHijriDate,
+  uint8_t repeatTarget,
+  int hijriCorrection
+)
     : dmd(display),
       topMode(TOP_TIME),
       topAnimState(TOP_ANIM_IN),
+      bottomAnimState(
+        showHijriDate ? BOTTOM_HIJRI_RUNNING : BOTTOM_RUNNING
+      ),
       topTextY(-SYSTEM5x7_HEIGHT),
       bottomTextX(SCREEN_WIDTH),
       lightX(0),
-      startedAt(0),
       lastTopAnimAt(0),
       topHoldStartedAt(0),
-      lastBottomScrollAt(0),
+      lastBottomAnimAt(0),
       lastLightAt(0),
       finished(false),
-      bottomHasEntered(false),
-      bottomMessage(bottomMessage)
+      showPasaran(showPasaran),
+      showHijriDate(showHijriDate),
+      repeatTarget(repeatTarget == 0 ? 1 : repeatTarget),
+      repeatCount(0),
+      hijriCorrection(hijriCorrection),
+      runningMessage(runningMessage)
 {
   topText[0] = '\0';
+  hijriText[0] = '\0';
 }
 
 void Layout4PrayerSchedule::begin()
@@ -66,20 +81,12 @@ void Layout4PrayerSchedule::begin()
   dmd.selectFont(System5x7);
   dmd.clearScreen(true);
 
-  topMode = TOP_TIME;
-  topAnimState = TOP_ANIM_IN;
-  topTextY = -SYSTEM5x7_HEIGHT;
-  bottomTextX = SCREEN_WIDTH;
-  lightX = 0;
   finished = false;
-  bottomHasEntered = false;
+  repeatCount = 0;
 
   const uint32_t now = millis();
-  startedAt = now;
-  lastTopAnimAt = now;
-  topHoldStartedAt = now;
-  lastBottomScrollAt = now;
-  lastLightAt = now;
+  updateHijriText();
+  resetAnimationCycle(now);
   updateTopText(ClockState{0, false});
 }
 
@@ -87,7 +94,7 @@ void Layout4PrayerSchedule::update(const ClockState &clock)
 {
   updateTopText(clock);
   updateTopAnimation();
-  updateBottomScroll();
+  updateBottomAnimation();
   updateLightAnimation();
 }
 
@@ -135,19 +142,68 @@ void Layout4PrayerSchedule::updateTopText(const ClockState &clock)
   }
 
   Date today = dayNow();
-  String pasaran = getPasaran(today.day, today.month, today.year);
   if (topMode == TOP_DAY) {
     char dayName[8];
     uppercaseCopy(dayName, sizeof(dayName), today.dayName);
 
+    if (!showPasaran) {
+      snprintf(topText, sizeof(topText), "%s", dayName);
+      return;
+    }
+
+    String pasaran = getPasaran(today.day, today.month, today.year);
     char pasaranJawa[8];
-    uppercaseCopy(pasaranJawa, sizeof(pasaranJawa), "kliwon");
+    uppercaseCopy(pasaranJawa, sizeof(pasaranJawa), pasaran.c_str());
 
     snprintf(topText, sizeof(topText), "%s %s", dayName, pasaranJawa);
     return;
   }
 
   snprintf(topText, sizeof(topText), "%02u / %02u / %04u", today.day, today.month, today.year);
+}
+
+void Layout4PrayerSchedule::updateHijriText()
+{
+  Date today = dayNow();
+  HijriDate hijri = HijriModule::getHijriDate(
+    today.year,
+    today.month,
+    today.day,
+    hijriCorrection
+  );
+
+  String hijriDate = String(hijri.day);
+  char hijriDayName[20];
+  uppercaseCopy(
+    hijriDayName,
+    sizeof(hijriDayName),
+    getHijriMonthName(hijri.month)
+  );
+  String hijriYear = String(hijri.year);
+
+  snprintf(
+    hijriText,
+    sizeof(hijriText),
+    "%s %s %s H",
+    hijriDate.c_str(),
+    hijriDayName,
+    hijriYear.c_str()
+  );
+}
+
+void Layout4PrayerSchedule::resetAnimationCycle(uint32_t now)
+{
+  topMode = TOP_TIME;
+  topAnimState = TOP_ANIM_IN;
+  bottomAnimState =
+    showHijriDate ? BOTTOM_HIJRI_RUNNING : BOTTOM_RUNNING;
+  topTextY = -SYSTEM5x7_HEIGHT;
+  bottomTextX = SCREEN_WIDTH;
+  lightX = 0;
+  lastTopAnimAt = now;
+  topHoldStartedAt = now;
+  lastBottomAnimAt = now;
+  lastLightAt = now;
 }
 
 void Layout4PrayerSchedule::updateTopAnimation()
@@ -183,29 +239,42 @@ void Layout4PrayerSchedule::updateTopAnimation()
   }
 }
 
-void Layout4PrayerSchedule::updateBottomScroll()
+void Layout4PrayerSchedule::updateBottomAnimation()
 {
   const uint32_t now = millis();
-  if (now - lastBottomScrollAt < BOTTOM_SCROLL_MS) {
+  if (now - lastBottomAnimAt < BOTTOM_SCROLL_MS) {
+    return;
+  }
+  lastBottomAnimAt = now;
+
+  dmd.selectFont(System5x7);
+  bottomTextX--;
+  const char *text =
+    bottomAnimState == BOTTOM_HIJRI_RUNNING
+      ? hijriText
+      : runningMessage.c_str();
+  const int textWidth = TextRenderer::textWidth(
+    dmd,
+    text,
+    BOTTOM_CHAR_SPACING
+  );
+
+  if (bottomTextX >= -textWidth) {
     return;
   }
 
-  lastBottomScrollAt = now;
-  bottomTextX--;
-
-  dmd.selectFont(System5x7);
-  const int textWidth = TextRenderer::textWidth(dmd, bottomMessage.c_str(), BOTTOM_CHAR_SPACING);
-  if (bottomTextX <= 0) {
-    bottomHasEntered = true;
-  }
-
-  if (bottomTextX < -textWidth) {
-    if (bottomHasEntered) {
+  if (bottomAnimState == BOTTOM_HIJRI_RUNNING) {
+    bottomAnimState = BOTTOM_RUNNING;
+    bottomTextX = SCREEN_WIDTH;
+  } else {
+    repeatCount++;
+    if (repeatCount >= repeatTarget) {
       finished = true;
       return;
     }
 
-    bottomTextX = SCREEN_WIDTH;
+    updateHijriText();
+    resetAnimationCycle(now);
   }
 }
 
@@ -239,6 +308,11 @@ void Layout4PrayerSchedule::drawTop()
 void Layout4PrayerSchedule::drawBottom()
 {
   TextRenderer::clearRegion(dmd, 0, BOTTOM_Y, SCREEN_WIDTH, BOTTOM_HEIGHT);
+  const char *text =
+    bottomAnimState == BOTTOM_HIJRI_RUNNING
+      ? hijriText
+      : runningMessage.c_str();
+
   TextRenderer::drawBoldTextInRegion(
     dmd,
     0,
@@ -246,7 +320,7 @@ void Layout4PrayerSchedule::drawBottom()
     SCREEN_WIDTH,
     bottomTextX,
     1,
-    bottomMessage.c_str(),
+    text,
     BOTTOM_CHAR_SPACING
   );
 }

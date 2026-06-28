@@ -46,7 +46,10 @@
       ]
     },
     "layout4": {
-      "bottom": "      12 JUMADIL AKHIR 1448 H      "
+      "showPasaran": true,
+      "showHijriDate": true,
+      "repeatCount": 1,
+      "running": "JAGA KEBERSIHAN DAN KEKHUSYUKAN IBADAH      "
     }
   }
 }
