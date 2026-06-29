@@ -18,3 +18,4 @@ void handleLayout3MessagePostJson(AsyncWebServerRequest *request, JsonVariant &j
 void handleLayout4MessagePostJson(AsyncWebServerRequest *request, JsonVariant &json);
 void handleLayout1PrayerDisplayPostJson(AsyncWebServerRequest *request, JsonVariant &json);
 void handleWiFiConfigPostJson(AsyncWebServerRequest *request, JsonVariant &json);
+void handleRelayConfigPostJson(AsyncWebServerRequest *request, JsonVariant &json);

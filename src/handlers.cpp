@@ -8,6 +8,7 @@
 #include "services/prayer_times/prayer_times_service.h"
 #include "services/panel_messages/panel_messages_service.h"
 #include "services/wifi_config/wifi_config_service.h"
+#include "services/relay/relay_service.h"
 #include "datetime/date_and_time.h"
 #include "panel/panelSetup.h"
 
@@ -262,5 +263,37 @@ void handleWiFiConfigPostJson(
   response["wifiConfig"]["ssid"] = config.ssid;
   response["wifiConfig"]["passwordUpdated"] = passwordUpdated;
   response["restartRequired"] = true;
+  sendJsonDocument(request, 200, response);
+}
+
+void handleRelayConfigPostJson(
+  AsyncWebServerRequest *request,
+  JsonVariant &json
+) {
+  RelayConfig config;
+  String message;
+  if (!updateRelayConfig(
+        json.as<JsonVariantConst>(),
+        config,
+        message
+      )) {
+    sendJsonResponse(request, 400, message.c_str());
+    return;
+  }
+
+  requestRelayConfigReload();
+
+  JsonDocument response;
+  response["success"] = true;
+  response["message"] = message;
+  response["relayConfig"]["enabled"] = config.enabled;
+  response["relayConfig"]["prePrayerMinutes"] =
+    config.prePrayerMinutes;
+  response["relayConfig"]["fridayPrePrayerMinutes"] =
+    config.fridayPrePrayerMinutes;
+  response["relayConfig"]["relay12OnDelaySeconds"] =
+    config.relay12OnDelaySeconds;
+  response["relayConfig"]["relay12OffDelayMinutes"] =
+    config.relay12OffDelayMinutes;
   sendJsonDocument(request, 200, response);
 }

@@ -13,3 +13,8 @@ constexpr uint16_t HTTP_SERVER_PORT = 80;
 
 constexpr const int PIN_SDA = 16;
 constexpr const int PIN_SCL = 17;
+
+constexpr const int PIN_RELAY_1 = 25;
+constexpr const int PIN_RELAY_2 = 26;
+constexpr const int PIN_RELAY_3 = 27;
+constexpr const int PIN_RELAY_4 = 32;

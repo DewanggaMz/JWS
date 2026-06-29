@@ -104,6 +104,14 @@ void setupServer() {
   wifiConfigHandler->setMethod(HTTP_POST);
   server.addHandler(wifiConfigHandler);
 
+  AsyncCallbackJsonWebHandler *relayConfigHandler =
+    new AsyncCallbackJsonWebHandler(
+      "/api/relay/config",
+      handleRelayConfigPostJson
+    );
+  relayConfigHandler->setMethod(HTTP_POST);
+  server.addHandler(relayConfigHandler);
+
 
   // server.onNotFound(handleNotFound);
 

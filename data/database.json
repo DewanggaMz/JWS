@@ -33,6 +33,13 @@
     "ssid": "unknown_fuz",
     "password": "Dewanggamz56"
   },
+  "relayConfig": {
+    "enabled": true,
+    "prePrayerMinutes": 10,
+    "fridayPrePrayerMinutes": 40,
+    "relay12OnDelaySeconds": 2,
+    "relay12OffDelayMinutes": 5
+  },
   "panelMessages": {
     "layout1": {
       "bottom": "MASJID BAITUROHMAH-GUMUKMOJO      ",

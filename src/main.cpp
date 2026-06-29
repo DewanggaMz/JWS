@@ -10,6 +10,7 @@
 #include "datetime/hijriah.h"
 #include "datetime/pasaran.h"
 #include "services/panel_messages/panel_messages_service.h"
+#include "services/relay/relay_service.h"
 
 unsigned long previousMillis;
 unsigned long lastPrayerRefreshAttemptAt;
@@ -37,6 +38,7 @@ bool refreshPanelPrayerSchedule(const Date &today) {
   }
 
   setPanelPrayerSchedule(schedule);
+  setRelayPrayerSchedule(schedule);
   loadedPrayerScheduleDateKey = todayKey;
   Serial.println("Jadwal sholat Layout 1 berhasil diperbarui");
   return true;
@@ -70,12 +72,13 @@ void refreshPrayerScheduleWhenDateChanges(const Date &today) {
 void cetakWaktu() {
   if(millis() - previousMillis >= 1000) {
     Time now = timeNow();
+    Date today = dayNow();
     setPanelClock(now.hour, now.minute, now.second);
+    relayLoop(now, today);
 
     Serial.printf("Current time: %02d:%02d:%02d\n", now.hour, now.minute, now.second);
     Serial.println("=====================================");
     
-    Date today = dayNow();
     Serial.printf("Today: %s %02d %02d %04d\n", today.dayName, today.day, today.month, today.year);
     Serial.println("=====================================");
     
@@ -108,6 +111,7 @@ void cetakWaktu() {
 
 void setup() {
   Serial.begin(115200);
+  setupRelayPins();
   
   initTime();
   if (!initStorage()) {
@@ -125,6 +129,11 @@ void setup() {
     return;
   }
 
+  if (!ensureRelayConfig()) {
+    Serial.println("Konfigurasi relay gagal disiapkan");
+    return;
+  }
+
   PanelMessages panelMessages;
   if (!loadPanelMessages(panelMessages)) {
     Serial.println("Konfigurasi panelMessages gagal dibaca");
@@ -139,6 +148,12 @@ void setup() {
   lastPrayerRefreshAttemptAt = millis();
   lastPrayerRefreshAttemptDateKey = todayKey;
   loadedPrayerScheduleDateKey = schedule.valid ? todayKey : 0;
+
+  if (!beginRelayScheduler(schedule)) {
+    Serial.println("Scheduler relay gagal disiapkan");
+    return;
+  }
+  relayLoop(now, today);
 
   connectToWiFi();
   setupServer();
