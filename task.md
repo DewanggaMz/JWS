@@ -10,3 +10,9 @@ POST /api/layout1/prayer-times
 "showSunrise": false,
 "showDhuha": true
 }
+
+POST /api/relay/prayer-states
+{
+"tartilDzuhur": false,
+"tartilJumat": true
+}

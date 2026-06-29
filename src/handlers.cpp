@@ -297,3 +297,32 @@ void handleRelayConfigPostJson(
     config.relay12OffDelayMinutes;
   sendJsonDocument(request, 200, response);
 }
+
+void handleRelayPrayerStatesPostJson(
+  AsyncWebServerRequest *request,
+  JsonVariant &json
+) {
+  RelayConfig config;
+  String message;
+  if (!updateRelayPrayerStates(
+        json.as<JsonVariantConst>(),
+        config,
+        message
+      )) {
+    sendJsonResponse(request, 400, message.c_str());
+    return;
+  }
+
+  requestRelayConfigReload();
+
+  JsonDocument response;
+  response["success"] = true;
+  response["message"] = message;
+  response["prayerStates"]["tartilSubuh"] = config.tartilSubuh;
+  response["prayerStates"]["tartilDzuhur"] = config.tartilDzuhur;
+  response["prayerStates"]["tartilJumat"] = config.tartilJumat;
+  response["prayerStates"]["tartilAshar"] = config.tartilAshar;
+  response["prayerStates"]["tartilMagrib"] = config.tartilMagrib;
+  response["prayerStates"]["tartilIsha"] = config.tartilIsha;
+  sendJsonDocument(request, 200, response);
+}

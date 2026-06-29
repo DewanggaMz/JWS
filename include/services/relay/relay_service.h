@@ -12,6 +12,12 @@ struct RelayConfig {
   uint16_t fridayPrePrayerMinutes;
   uint16_t relay12OnDelaySeconds;
   uint16_t relay12OffDelayMinutes;
+  bool tartilSubuh;
+  bool tartilDzuhur;
+  bool tartilJumat;
+  bool tartilAshar;
+  bool tartilMagrib;
+  bool tartilIsha;
 };
 
 void setupRelayPins();
@@ -22,6 +28,11 @@ void relayLoop(const Time &now, const Date &today);
 
 bool loadRelayConfig(RelayConfig &config);
 bool updateRelayConfig(
+  JsonVariantConst payload,
+  RelayConfig &config,
+  String &message
+);
+bool updateRelayPrayerStates(
   JsonVariantConst payload,
   RelayConfig &config,
   String &message

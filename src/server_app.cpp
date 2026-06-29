@@ -112,6 +112,14 @@ void setupServer() {
   relayConfigHandler->setMethod(HTTP_POST);
   server.addHandler(relayConfigHandler);
 
+  AsyncCallbackJsonWebHandler *relayPrayerStatesHandler =
+    new AsyncCallbackJsonWebHandler(
+      "/api/relay/prayer-states",
+      handleRelayPrayerStatesPostJson
+    );
+  relayPrayerStatesHandler->setMethod(HTTP_POST);
+  server.addHandler(relayPrayerStatesHandler);
+
 
   // server.onNotFound(handleNotFound);
 

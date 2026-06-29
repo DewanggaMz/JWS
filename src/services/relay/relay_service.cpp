@@ -9,10 +9,16 @@
 namespace {
 
 const bool DEFAULT_ENABLED = true;
-const uint16_t DEFAULT_PRE_PRAYER_MINUTES = 10;
+const uint16_t DEFAULT_PRE_PRAYER_MINUTES = 7;
 const uint16_t DEFAULT_FRIDAY_PRE_PRAYER_MINUTES = 40;
 const uint16_t DEFAULT_RELAY_12_ON_DELAY_SECONDS = 2;
 const uint16_t DEFAULT_RELAY_12_OFF_DELAY_MINUTES = 5;
+const bool DEFAULT_TARTIL_SUBUH = true;
+const bool DEFAULT_TARTIL_DZUHUR = true;
+const bool DEFAULT_TARTIL_JUMAT = true;
+const bool DEFAULT_TARTIL_ASHAR = true;
+const bool DEFAULT_TARTIL_MAGRIB = true;
+const bool DEFAULT_TARTIL_ISHA = true;
 
 const uint16_t MAX_PRE_PRAYER_MINUTES = 180;
 const uint16_t MAX_RELAY_12_OFF_DELAY_MINUTES = 180;
@@ -22,7 +28,13 @@ RelayConfig activeConfig{
   DEFAULT_PRE_PRAYER_MINUTES,
   DEFAULT_FRIDAY_PRE_PRAYER_MINUTES,
   DEFAULT_RELAY_12_ON_DELAY_SECONDS,
-  DEFAULT_RELAY_12_OFF_DELAY_MINUTES
+  DEFAULT_RELAY_12_OFF_DELAY_MINUTES,
+  DEFAULT_TARTIL_SUBUH,
+  DEFAULT_TARTIL_DZUHUR,
+  DEFAULT_TARTIL_JUMAT,
+  DEFAULT_TARTIL_ASHAR,
+  DEFAULT_TARTIL_MAGRIB,
+  DEFAULT_TARTIL_ISHA
 };
 PrayerSchedule activeSchedule{};
 bool schedulerInitialized = false;
@@ -76,7 +88,13 @@ bool parseRelayConfig(
       !object["prePrayerMinutes"].is<int>() ||
       !object["fridayPrePrayerMinutes"].is<int>() ||
       !object["relay12OnDelaySeconds"].is<int>() ||
-      !object["relay12OffDelayMinutes"].is<int>()) {
+      !object["relay12OffDelayMinutes"].is<int>() ||
+      !object["tartilSubuh"].is<bool>() ||
+      !object["tartilDzuhur"].is<bool>() ||
+      !object["tartilJumat"].is<bool>() ||
+      !object["tartilAshar"].is<bool>() ||
+      !object["tartilMagrib"].is<bool>() ||
+      !object["tartilIsha"].is<bool>()) {
     message = "Tipe data konfigurasi relay tidak valid";
     return false;
   }
@@ -124,6 +142,12 @@ bool parseRelayConfig(
     static_cast<uint16_t>(relay12OnDelaySeconds);
   config.relay12OffDelayMinutes =
     static_cast<uint16_t>(relay12OffDelayMinutes);
+  config.tartilSubuh = object["tartilSubuh"].as<bool>();
+  config.tartilDzuhur = object["tartilDzuhur"].as<bool>();
+  config.tartilJumat = object["tartilJumat"].as<bool>();
+  config.tartilAshar = object["tartilAshar"].as<bool>();
+  config.tartilMagrib = object["tartilMagrib"].as<bool>();
+  config.tartilIsha = object["tartilIsha"].as<bool>();
   return true;
 }
 
@@ -316,6 +340,36 @@ bool ensureRelayConfig()
     DEFAULT_RELAY_12_OFF_DELAY_MINUTES,
     MAX_RELAY_12_OFF_DELAY_MINUTES
   );
+  changed |= setBoolIfMissing(
+    config,
+    "tartilSubuh",
+    DEFAULT_TARTIL_SUBUH
+  );
+  changed |= setBoolIfMissing(
+    config,
+    "tartilDzuhur",
+    DEFAULT_TARTIL_DZUHUR
+  );
+  changed |= setBoolIfMissing(
+    config,
+    "tartilJumat",
+    DEFAULT_TARTIL_JUMAT
+  );
+  changed |= setBoolIfMissing(
+    config,
+    "tartilAshar",
+    DEFAULT_TARTIL_ASHAR
+  );
+  changed |= setBoolIfMissing(
+    config,
+    "tartilMagrib",
+    DEFAULT_TARTIL_MAGRIB
+  );
+  changed |= setBoolIfMissing(
+    config,
+    "tartilIsha",
+    DEFAULT_TARTIL_ISHA
+  );
 
   RelayConfig parsed;
   String message;
@@ -328,6 +382,12 @@ bool ensureRelayConfig()
       DEFAULT_RELAY_12_ON_DELAY_SECONDS;
     config["relay12OffDelayMinutes"] =
       DEFAULT_RELAY_12_OFF_DELAY_MINUTES;
+    config["tartilSubuh"] = DEFAULT_TARTIL_SUBUH;
+    config["tartilDzuhur"] = DEFAULT_TARTIL_DZUHUR;
+    config["tartilJumat"] = DEFAULT_TARTIL_JUMAT;
+    config["tartilAshar"] = DEFAULT_TARTIL_ASHAR;
+    config["tartilMagrib"] = DEFAULT_TARTIL_MAGRIB;
+    config["tartilIsha"] = DEFAULT_TARTIL_ISHA;
     changed = true;
   }
 
@@ -386,46 +446,58 @@ void relayLoop(const Time &now, const Date &today)
     today.dayName != nullptr &&
     strcmp(today.dayName, "Jumat") == 0;
 
-  includePrayerWindow(
-    activeSchedule.subuh,
-    currentSecond,
-    shouldRelay12BeOn,
-    shouldRelay4BeOn
-  );
-  if (isFriday) {
-    includeFridayDhuhrWindow(
-      activeSchedule.dzuhur,
-      currentSecond,
-      shouldRelay12BeOn,
-      shouldRelay3BeOn,
-      shouldRelay4BeOn
-    );
-  } else {
+  if (activeConfig.tartilSubuh) {
     includePrayerWindow(
-      activeSchedule.dzuhur,
+      activeSchedule.subuh,
       currentSecond,
       shouldRelay12BeOn,
       shouldRelay4BeOn
     );
   }
-  includePrayerWindow(
-    activeSchedule.ashar,
-    currentSecond,
-    shouldRelay12BeOn,
-    shouldRelay4BeOn
-  );
-  includePrayerWindow(
-    activeSchedule.maghrib,
-    currentSecond,
-    shouldRelay12BeOn,
-    shouldRelay4BeOn
-  );
-  includePrayerWindow(
-    activeSchedule.isya,
-    currentSecond,
-    shouldRelay12BeOn,
-    shouldRelay4BeOn
-  );
+  if (isFriday) {
+    if (activeConfig.tartilJumat) {
+      includeFridayDhuhrWindow(
+        activeSchedule.dzuhur,
+        currentSecond,
+        shouldRelay12BeOn,
+        shouldRelay3BeOn,
+        shouldRelay4BeOn
+      );
+    }
+  } else {
+    if (activeConfig.tartilDzuhur) {
+      includePrayerWindow(
+        activeSchedule.dzuhur,
+        currentSecond,
+        shouldRelay12BeOn,
+        shouldRelay4BeOn
+      );
+    }
+  }
+  if (activeConfig.tartilAshar) {
+    includePrayerWindow(
+      activeSchedule.ashar,
+      currentSecond,
+      shouldRelay12BeOn,
+      shouldRelay4BeOn
+    );
+  }
+  if (activeConfig.tartilMagrib) {
+    includePrayerWindow(
+      activeSchedule.maghrib,
+      currentSecond,
+      shouldRelay12BeOn,
+      shouldRelay4BeOn
+    );
+  }
+  if (activeConfig.tartilIsha) {
+    includePrayerWindow(
+      activeSchedule.isya,
+      currentSecond,
+      shouldRelay12BeOn,
+      shouldRelay4BeOn
+    );
+  }
 
   writeRelay(
     PIN_RELAY_4,
@@ -523,6 +595,12 @@ bool updateRelayConfig(
       DEFAULT_RELAY_12_ON_DELAY_SECONDS;
     stored["relay12OffDelayMinutes"] =
       DEFAULT_RELAY_12_OFF_DELAY_MINUTES;
+    stored["tartilSubuh"] = DEFAULT_TARTIL_SUBUH;
+    stored["tartilDzuhur"] = DEFAULT_TARTIL_DZUHUR;
+    stored["tartilJumat"] = DEFAULT_TARTIL_JUMAT;
+    stored["tartilAshar"] = DEFAULT_TARTIL_ASHAR;
+    stored["tartilMagrib"] = DEFAULT_TARTIL_MAGRIB;
+    stored["tartilIsha"] = DEFAULT_TARTIL_ISHA;
   }
 
   if (hasEnabled) {
@@ -554,6 +632,83 @@ bool updateRelayConfig(
   }
 
   message = "Konfigurasi relay berhasil diperbarui";
+  return true;
+}
+
+bool updateRelayPrayerStates(
+  JsonVariantConst payload,
+  RelayConfig &config,
+  String &message
+)
+{
+  if (!payload.is<JsonObjectConst>()) {
+    message = "Payload state tartil harus berupa object";
+    return false;
+  }
+
+  JsonObjectConst input = payload.as<JsonObjectConst>();
+  const bool hasSubuh = !input["tartilSubuh"].isUnbound();
+  const bool hasDzuhur = !input["tartilDzuhur"].isUnbound();
+  const bool hasJumat = !input["tartilJumat"].isUnbound();
+  const bool hasAshar = !input["tartilAshar"].isUnbound();
+  const bool hasMagrib = !input["tartilMagrib"].isUnbound();
+  const bool hasIsha = !input["tartilIsha"].isUnbound();
+  if (!hasSubuh &&
+      !hasDzuhur &&
+      !hasJumat &&
+      !hasAshar &&
+      !hasMagrib &&
+      !hasIsha) {
+    message = "Tidak ada field state tartil yang dikenali";
+    return false;
+  }
+
+  if ((hasSubuh && !input["tartilSubuh"].is<bool>()) ||
+      (hasDzuhur && !input["tartilDzuhur"].is<bool>()) ||
+      (hasJumat && !input["tartilJumat"].is<bool>()) ||
+      (hasAshar && !input["tartilAshar"].is<bool>()) ||
+      (hasMagrib && !input["tartilMagrib"].is<bool>()) ||
+      (hasIsha && !input["tartilIsha"].is<bool>())) {
+    message = "Semua state tartil harus berupa boolean";
+    return false;
+  }
+
+  JsonDocument database;
+  loadDatabase(database);
+  if (!database["relayConfig"].is<JsonObject>()) {
+    message = "Konfigurasi relay belum tersedia";
+    return false;
+  }
+
+  JsonObject stored = database["relayConfig"].as<JsonObject>();
+  if (hasSubuh) {
+    stored["tartilSubuh"] = input["tartilSubuh"].as<bool>();
+  }
+  if (hasDzuhur) {
+    stored["tartilDzuhur"] = input["tartilDzuhur"].as<bool>();
+  }
+  if (hasJumat) {
+    stored["tartilJumat"] = input["tartilJumat"].as<bool>();
+  }
+  if (hasAshar) {
+    stored["tartilAshar"] = input["tartilAshar"].as<bool>();
+  }
+  if (hasMagrib) {
+    stored["tartilMagrib"] = input["tartilMagrib"].as<bool>();
+  }
+  if (hasIsha) {
+    stored["tartilIsha"] = input["tartilIsha"].as<bool>();
+  }
+
+  if (!parseRelayConfig(stored, config, message)) {
+    return false;
+  }
+  if (!saveDatabase(database)) {
+    message = "Gagal menyimpan state tartil";
+    return false;
+  }
+
+  message = "State tartil berhasil diperbarui";
   return true;
 }
 

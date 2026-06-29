@@ -38,7 +38,13 @@
     "prePrayerMinutes": 10,
     "fridayPrePrayerMinutes": 40,
     "relay12OnDelaySeconds": 2,
-    "relay12OffDelayMinutes": 5
+    "relay12OffDelayMinutes": 5,
+    "tartilSubuh": true,
+    "tartilDzuhur": true,
+    "tartilJumat": true,
+    "tartilAshar": true,
+    "tartilMagrib": true,
+    "tartilIsha": true
   },
   "panelMessages": {
     "layout1": {
