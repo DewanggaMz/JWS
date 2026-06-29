@@ -30,6 +30,7 @@ class Layout5PrayerCountdown : public PanelLayout {
     AnimationState state;
     bool targetSelected;
     bool finished;
+    uint8_t messageRepeatCount;
     uint32_t targetSecond;
     int countdownX;
     int runningX;

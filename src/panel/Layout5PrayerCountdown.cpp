@@ -11,6 +11,7 @@ namespace {
 const uint32_t SLIDE_ANIMATION_MS = 20;
 const uint32_t COUNTDOWN_HOLD_MS = 500;
 const uint32_t RUNNING_SCROLL_MS = 65;
+const uint8_t MESSAGE_REPEAT_TARGET = 2;
 const int SLIDE_STEP = 2;
 const int COUNTDOWN_CHAR_SPACING = 2;
 const int MESSAGE_CHAR_SPACING = 2;
@@ -35,6 +36,7 @@ Layout5PrayerCountdown::Layout5PrayerCountdown(
     state(COUNTDOWN_SLIDE_IN),
     targetSelected(false),
     finished(false),
+    messageRepeatCount(0),
     targetSecond(0),
     countdownX(-SCREEN_WIDTH),
     runningX(SCREEN_WIDTH),
@@ -55,6 +57,7 @@ void Layout5PrayerCountdown::begin()
   state = COUNTDOWN_SLIDE_IN;
   targetSelected = false;
   finished = false;
+  messageRepeatCount = 0;
   targetSecond = 0;
   countdownX = -SCREEN_WIDTH;
   runningX = SCREEN_WIDTH;
@@ -139,6 +142,7 @@ void Layout5PrayerCountdown::setPrayerSchedule(
   targetSelected = false;
   state = COUNTDOWN_SLIDE_IN;
   finished = false;
+  messageRepeatCount = 0;
   countdownX = -SCREEN_WIDTH;
   runningX = SCREEN_WIDTH;
   const uint32_t now = millis();
@@ -257,7 +261,12 @@ void Layout5PrayerCountdown::updateRunningMessage()
     MESSAGE_CHAR_SPACING
   );
   if (runningX < -textWidth) {
-    finished = true;
+    messageRepeatCount++;
+    if (messageRepeatCount >= MESSAGE_REPEAT_TARGET) {
+      finished = true;
+    } else {
+      runningX = SCREEN_WIDTH;
+    }
   }
 }
 
