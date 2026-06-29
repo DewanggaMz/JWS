@@ -21,3 +21,5 @@ struct PrayerSchedule {
 };
 
 PrayerSchedule getPrayerTimes();
+void requestPrayerScheduleRefresh();
+bool consumePrayerScheduleRefreshRequest();

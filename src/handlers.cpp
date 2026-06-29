@@ -148,11 +148,13 @@ void handlePrayerConfigPostJson(AsyncWebServerRequest *request, JsonVariant &jso
 
   JsonDocument config;
   loadPrayerTimesConfig(config);
+  requestPrayerScheduleRefresh();
 
   JsonDocument response;
   response["success"] = true;
   response["message"] = message;
   response["prayerTimesConfig"].set(config.as<JsonVariantConst>());
+  response["scheduleRefreshQueued"] = true;
 
   sendJsonDocument(request, 200, response);
 }

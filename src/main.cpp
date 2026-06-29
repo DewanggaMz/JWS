@@ -10,10 +10,62 @@
 #include "datetime/hijriah.h"
 #include "datetime/pasaran.h"
 #include "services/panel_messages/panel_messages_service.h"
-#include "services/wifi_config/wifi_config_service.h"
 
 unsigned long previousMillis;
+unsigned long lastPrayerRefreshAttemptAt;
+uint32_t loadedPrayerScheduleDateKey;
+uint32_t lastPrayerRefreshAttemptDateKey;
 
+namespace {
+
+uint32_t dateKey(const Date &date) {
+  return
+    (static_cast<uint32_t>(date.year) * 10000UL) +
+    (static_cast<uint32_t>(date.month) * 100UL) +
+    date.day;
+}
+
+bool refreshPanelPrayerSchedule(const Date &today) {
+  const uint32_t todayKey = dateKey(today);
+  lastPrayerRefreshAttemptAt = millis();
+  lastPrayerRefreshAttemptDateKey = todayKey;
+
+  PrayerSchedule schedule = getPrayerTimes();
+  if (!schedule.valid) {
+    Serial.println("Gagal menghitung ulang jadwal sholat");
+    return false;
+  }
+
+  setPanelPrayerSchedule(schedule);
+  loadedPrayerScheduleDateKey = todayKey;
+  Serial.println("Jadwal sholat Layout 1 berhasil diperbarui");
+  return true;
+}
+
+void processPrayerScheduleRefreshRequest() {
+  if (!consumePrayerScheduleRefreshRequest()) {
+    return;
+  }
+
+  refreshPanelPrayerSchedule(dayNow());
+}
+
+void refreshPrayerScheduleWhenDateChanges(const Date &today) {
+  const uint32_t todayKey = dateKey(today);
+  if (todayKey == loadedPrayerScheduleDateKey) {
+    return;
+  }
+
+  const bool firstAttemptForDate =
+    todayKey != lastPrayerRefreshAttemptDateKey;
+  const bool retryDelayElapsed =
+    millis() - lastPrayerRefreshAttemptAt >= 60000UL;
+  if (firstAttemptForDate || retryDelayElapsed) {
+    refreshPanelPrayerSchedule(today);
+  }
+}
+
+}
 
 void cetakWaktu() {
   if(millis() - previousMillis >= 1000) {
@@ -27,12 +79,7 @@ void cetakWaktu() {
     Serial.printf("Today: %s %02d %02d %04d\n", today.dayName, today.day, today.month, today.year);
     Serial.println("=====================================");
     
-    if (now.hour == 0 && now.minute == 0 && now.second == 0) {
-      PrayerSchedule schedule = getPrayerTimes();
-      if (schedule.valid) {
-        setPanelPrayerSchedule(schedule);
-      }
-    }
+    refreshPrayerScheduleWhenDateChanges(today);
     Serial.println("=====================================");
 
     HijriDate hijri = HijriModule::getHijriDate(
@@ -78,28 +125,28 @@ void setup() {
     return;
   }
 
-  if (!ensureWiFiConfig()) {
-    Serial.println("Konfigurasi WiFi gagal disiapkan");
-    return;
-  }
-
   PanelMessages panelMessages;
   if (!loadPanelMessages(panelMessages)) {
     Serial.println("Konfigurasi panelMessages gagal dibaca");
     return;
   }
 
+
   Time now = timeNow();
   PrayerSchedule schedule = getPrayerTimes();
+  Date today = dayNow();
+  const uint32_t todayKey = dateKey(today);
+  lastPrayerRefreshAttemptAt = millis();
+  lastPrayerRefreshAttemptDateKey = todayKey;
+  loadedPrayerScheduleDateKey = schedule.valid ? todayKey : 0;
 
-  if (!connectToWiFi()) {
-    return;
-  }
+  connectToWiFi();
   setupServer();
   setupPanelInit(now, schedule, panelMessages);
 }
 
 void loop() {
+  processPrayerScheduleRefreshRequest();
   panelLoop();
   cetakWaktu();
 }

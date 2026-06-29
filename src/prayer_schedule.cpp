@@ -1,10 +1,13 @@
 #include "prayer_schedule.h"
 
 #include <PrayerTimes.h>
+#include <atomic>
 #include "services/prayer_times/prayer_times_service.h"
 #include "datetime/date_and_time.h"
 
 namespace {
+std::atomic<bool> prayerScheduleRefreshRequested(false);
+
 PrayerSchedule emptyPrayerSchedule()
 {
   PrayerSchedule schedule{};
@@ -24,6 +27,19 @@ PrayerScheduleTime toPrayerScheduleTime(PrayerTimes &pt, float minutes)
   time.valid = true;
   return time;
 }
+}
+
+void requestPrayerScheduleRefresh()
+{
+  prayerScheduleRefreshRequested.store(true, std::memory_order_release);
+}
+
+bool consumePrayerScheduleRefreshRequest()
+{
+  return prayerScheduleRefreshRequested.exchange(
+    false,
+    std::memory_order_acq_rel
+  );
 }
 
 PrayerSchedule getPrayerTimes() {

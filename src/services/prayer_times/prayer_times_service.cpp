@@ -185,14 +185,6 @@ bool updatePrayerTimesConfig(JsonVariantConst payload, String &message) {
     database["prayerTimesConfig"].set(defaultConfig.as<JsonVariantConst>());
   }
 
-  // print database
-  // String databaseJson;
-  // serializeJson(database, databaseJson);
-  // Serial.print("database :  ");
-  // Serial.println(databaseJson);
-
-  // Serial.print("database prayer :  ");
-
 
   JsonObject prayerTimes = database["prayerTimesConfig"].as<JsonObject>();
 
@@ -229,6 +221,12 @@ bool parsePrayerTimesConfig(JsonVariantConst source, PrayerTimesConfig &config, 
   JsonObjectConst location = source["location"];
   JsonObjectConst calculation = source["calculation"];
   JsonObjectConst adjustments = calculation["adjustments"];
+
+  // print adjustments
+  String adjustmentsJson;
+  serializeJson(adjustments, adjustmentsJson);
+  Serial.println("adjustments");
+  Serial.println(adjustmentsJson);
 
   config.latitude = location["latitude"] | -8.245230;
   config.longitude = location["longitude"] | 112.600482;
