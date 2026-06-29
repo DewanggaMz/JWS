@@ -2,6 +2,8 @@
 
 #include <DMD32.h>
 #include <Ticker.h>
+#include <freertos/FreeRTOS.h>
+#include <freertos/semphr.h>
 
 #include "panel/DisplayConfig.h"
 #include "panel/Layout1Split.h"
@@ -21,6 +23,9 @@ Layout1Split *layout1 = nullptr;
 Layout2FullRunning *layout2 = nullptr;
 Layout3SlideText *layout3 = nullptr;
 Layout4PrayerSchedule *layout4 = nullptr;
+SemaphoreHandle_t panelMessagesMutex = nullptr;
+PanelMessages pendingPanelMessages;
+bool panelMessagesUpdatePending = false;
 
 uint32_t lastFrameAt = 0;
 
@@ -34,6 +39,52 @@ namespace{
   {
       dmdTicker.attach_ms(DMD_REFRESH_MS, triggerScan);
   }
+
+  void applyPanelMessages(const PanelMessages &messages)
+  {
+    if (layout1 != nullptr) {
+      layout1->setMessage(
+        messages.layout1Bottom,
+        messages.layout1RepeatCount
+      );
+    }
+
+    if (layout2 != nullptr) {
+      layout2->setMessage(messages.layout2Running);
+    }
+
+    if (layout3 != nullptr) {
+      layout3->setMessages(
+        messages.layout3Slides,
+        messages.layout3SlideCount
+      );
+    }
+
+    if (layout4 != nullptr) {
+      layout4->setConfiguration(
+        messages.layout4Running,
+        messages.layout4ShowPasaran,
+        messages.layout4ShowHijriDate,
+        messages.layout4RepeatCount,
+        messages.layout4HijriCorrection
+      );
+    }
+  }
+
+  void applyPendingPanelMessages()
+  {
+    if (panelMessagesMutex == nullptr ||
+        xSemaphoreTake(panelMessagesMutex, 0) != pdTRUE) {
+      return;
+    }
+
+    if (panelMessagesUpdatePending) {
+      applyPanelMessages(pendingPanelMessages);
+      panelMessagesUpdatePending = false;
+    }
+
+    xSemaphoreGive(panelMessagesMutex);
+  }
 }
 
 void setupPanelInit(
@@ -41,10 +92,18 @@ void setupPanelInit(
   const PrayerSchedule &schedule,
   const PanelMessages &messages
 ) {
+  if (panelMessagesMutex == nullptr) {
+    panelMessagesMutex = xSemaphoreCreateMutex();
+  }
+
   dmd.clearScreen(true);
   dmd.setBrightness(PANEL_BRIGHTNESS);
 
-  layout1 = new Layout1Split(dmd, messages.layout1Bottom, 3);
+  layout1 = new Layout1Split(
+    dmd,
+    messages.layout1Bottom,
+    messages.layout1RepeatCount
+  );
   layout2 = new Layout2FullRunning(dmd, messages.layout2Running);
   layout3 = new Layout3SlideText(
     dmd,
@@ -62,9 +121,9 @@ void setupPanelInit(
 
   layout1->setPrayerSchedule(schedule);
 
-  // panelAnimations.addLayout(*layout1);
+  panelAnimations.addLayout(*layout1);
   // panelAnimations.addLayout(*layout3);
-  panelAnimations.addLayout(*layout4);
+  // panelAnimations.addLayout(*layout4);
   // panelAnimations.addLayout(*layout2);
   panelAnimations.begin(time.hour, time.minute, time.second);
 
@@ -72,6 +131,7 @@ void setupPanelInit(
 }
 
 void panelLoop () {
+  applyPendingPanelMessages();
   panelAnimations.update();
   
   // if (millis() - lastFrameAt >= ) {
@@ -93,4 +153,16 @@ void setPanelPrayerSchedule(const PrayerSchedule &schedule) {
   if (layout1 != nullptr) {
     layout1->setPrayerSchedule(schedule);
   }
+}
+
+bool queuePanelMessagesUpdate(const PanelMessages &messages) {
+  if (panelMessagesMutex == nullptr ||
+      xSemaphoreTake(panelMessagesMutex, pdMS_TO_TICKS(100)) != pdTRUE) {
+    return false;
+  }
+
+  pendingPanelMessages = messages;
+  panelMessagesUpdatePending = true;
+  xSemaphoreGive(panelMessagesMutex);
+  return true;
 }

@@ -13,6 +13,7 @@ class Layout1Split : public PanelLayout {
     void render(const ClockState &clock) override;
     bool isFinished() const override;
     void setPrayerSchedule(const PrayerSchedule &schedule);
+    void setMessage(const String &message, uint8_t repeatTarget);
 
   private:
     enum TopAnimState {

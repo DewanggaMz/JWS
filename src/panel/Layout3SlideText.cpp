@@ -114,3 +114,27 @@ bool Layout3SlideText::isFinished() const
 {
     return finished;
 }
+
+void Layout3SlideText::setMessages(
+    const String newMessages[],
+    uint8_t newMessageCount
+)
+{
+    messageCount = min(newMessageCount, static_cast<uint8_t>(12));
+    if (messageCount == 0) {
+        messages[0] = " ";
+        messageCount = 1;
+        return;
+    }
+
+    for (uint8_t i = 0; i < messageCount; i++) {
+        messages[i] = newMessages[i];
+    }
+
+    messageIndex = 0;
+    slideState = SLIDE_ANIM_IN;
+    textX = -SCREEN_WIDTH;
+    finished = false;
+    lastAnimAt = millis();
+    lastHoldAt = lastAnimAt;
+}

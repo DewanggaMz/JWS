@@ -12,6 +12,7 @@ class Layout2FullRunning : public PanelLayout {
     void update(const ClockState &clock) override;
     void render(const ClockState &clock) override;
     bool isFinished() const override;
+    void setMessage(const String &message);
 
   private:
     DMD &dmd;

@@ -112,6 +112,22 @@ bool Layout4PrayerSchedule::isFinished() const
   return finished;
 }
 
+void Layout4PrayerSchedule::setConfiguration(
+  const String &newRunningMessage,
+  bool newShowPasaran,
+  bool newShowHijriDate,
+  uint8_t newRepeatTarget,
+  int newHijriCorrection
+)
+{
+  runningMessage = newRunningMessage;
+  showPasaran = newShowPasaran;
+  showHijriDate = newShowHijriDate;
+  repeatTarget = newRepeatTarget == 0 ? 1 : newRepeatTarget;
+  hijriCorrection = newHijriCorrection;
+  updateHijriText();
+}
+
 void Layout4PrayerSchedule::nextTopMode()
 {
   if (topMode == TOP_TIME) {

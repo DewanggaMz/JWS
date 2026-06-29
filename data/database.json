@@ -28,9 +28,15 @@
   "hijriConfig": {
     "correct": 1
   },
+  "wifiConfig": {
+    "mode": "STA",
+    "ssid": "unknown_fuz",
+    "password": "Dewanggamz56"
+  },
   "panelMessages": {
     "layout1": {
-      "bottom": "MASJID BAITUROHMAH-GUMUKMOJO      "
+      "bottom": "MASJID BAITUROHMAH-GUMUKMOJO      ",
+      "repeatCount": 3
     },
     "layout2": {
       "running": "LAYOUT 2  -  INFORMASI BERJALAN DI 3 PANEL P10      "

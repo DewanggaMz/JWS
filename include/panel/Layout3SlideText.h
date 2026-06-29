@@ -12,6 +12,7 @@ class Layout3SlideText : public PanelLayout {
     void update(const ClockState &clock) override;
     void render(const ClockState &clock) override;
     bool isFinished() const override;
+    void setMessages(const String newMessages[], uint8_t newMessageCount);
 
   private:
     enum SlideAnimState {

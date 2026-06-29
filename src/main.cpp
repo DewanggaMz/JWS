@@ -10,6 +10,7 @@
 #include "datetime/hijriah.h"
 #include "datetime/pasaran.h"
 #include "services/panel_messages/panel_messages_service.h"
+#include "services/wifi_config/wifi_config_service.h"
 
 unsigned long previousMillis;
 
@@ -77,6 +78,11 @@ void setup() {
     return;
   }
 
+  if (!ensureWiFiConfig()) {
+    Serial.println("Konfigurasi WiFi gagal disiapkan");
+    return;
+  }
+
   PanelMessages panelMessages;
   if (!loadPanelMessages(panelMessages)) {
     Serial.println("Konfigurasi panelMessages gagal dibaca");
@@ -86,7 +92,9 @@ void setup() {
   Time now = timeNow();
   PrayerSchedule schedule = getPrayerTimes();
 
-  connectToWiFi();
+  if (!connectToWiFi()) {
+    return;
+  }
   setupServer();
   setupPanelInit(now, schedule, panelMessages);
 }

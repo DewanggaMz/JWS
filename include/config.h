@@ -2,13 +2,10 @@
 
 #include <stdint.h>
 
-constexpr const char *WIFI_SSID = "unknown_fuz";
-constexpr const char *WIFI_PASSWORD = "Dewanggamz56";
-constexpr const char *WIFI_AP_SSID = "esp32";
-constexpr const char *WIFI_AP_PASSWORD = "11223344";
-constexpr bool WIFI_ENABLE_AP_STA = false;
-constexpr bool WIFI_ENABLE_AP_FALLBACK = true;
-constexpr unsigned long WIFI_CONNECT_TIMEOUT_MS = 15000;
+constexpr const char *DEFAULT_WIFI_AP_SSID = "esp32";
+constexpr const char *DEFAULT_WIFI_AP_PASSWORD = "11223344";
+constexpr const char *DEFAULT_WIFI_MODE = "AP";
+constexpr unsigned long WIFI_STA_CONNECT_TIMEOUT_MS = 15000;
 
 constexpr const char *DATABASE_PATH = "/database.json";
 constexpr const char *DEFAULT_PRAYER_TIMES_PATH = "/default_prayer_times.json";

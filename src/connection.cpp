@@ -5,53 +5,71 @@
 #include <esp_wifi.h>
 
 #include "config.h"
+#include "services/wifi_config/wifi_config_service.h"
 
-void connectToWiFi() {
-  WiFi.persistent(false);
-  WiFi.setAutoReconnect(true);
+namespace {
+
+bool startAccessPoint(const WiFiConfig &config)
+{
+  WiFi.mode(WIFI_AP);
   WiFi.setSleep(false);
+  WiFi.setTxPower(WIFI_POWER_11dBm);
   esp_wifi_set_ps(WIFI_PS_NONE);
 
-  WiFi.mode(WIFI_ENABLE_AP_STA ? WIFI_AP_STA : WIFI_STA);
+  if (!WiFi.softAP(config.ssid.c_str(), config.password.c_str())) {
+    Serial.println("Gagal menyalakan WiFi mode AP");
+    return false;
+  }
+
+  Serial.printf("WiFi AP aktif. SSID: %s\n", config.ssid.c_str());
+  Serial.print("IP address: ");
+  Serial.println(WiFi.softAPIP());
+  return true;
+}
+
+bool connectStation(const WiFiConfig &config)
+{
+  WiFi.mode(WIFI_STA);
+  WiFi.setAutoReconnect(true);
+  WiFi.setSleep(false);
   WiFi.setTxPower(WIFI_POWER_11dBm);
-  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+  esp_wifi_set_ps(WIFI_PS_NONE);
+  WiFi.begin(config.ssid.c_str(), config.password.c_str());
 
-  if (WIFI_ENABLE_AP_STA) {
-    WiFi.softAP(WIFI_AP_SSID, WIFI_AP_PASSWORD);
-  }
-
-  unsigned long start = millis();
-
+  Serial.printf("Menghubungkan WiFi STA ke SSID: %s", config.ssid.c_str());
+  const unsigned long startedAt = millis();
   while (WiFi.status() != WL_CONNECTED) {
-    if (millis() - start > WIFI_CONNECT_TIMEOUT_MS) {
-      Serial.println("Gagal terhubung ke WiFi STA");
-      break;
-    }
-    delay(50);
-  }
-
-  if (WiFi.status() == WL_CONNECTED) {
-    Serial.print("WiFi STA terhubung. IP address: ");
-    Serial.println(WiFi.localIP());
-  } else if (WIFI_ENABLE_AP_FALLBACK && !WIFI_ENABLE_AP_STA) {
-    WiFi.mode(WIFI_AP);
-    WiFi.setSleep(false);
-    esp_wifi_set_ps(WIFI_PS_NONE);
-    WiFi.setTxPower(WIFI_POWER_11dBm);
-
-    if (!WiFi.softAP(WIFI_AP_SSID, WIFI_AP_PASSWORD)) {
-      Serial.println("Gagal menyalakan SoftAP");
-      return;
+    if (millis() - startedAt >= WIFI_STA_CONNECT_TIMEOUT_MS) {
+      Serial.println("\nGagal terhubung ke WiFi STA: timeout");
+      WiFi.disconnect(true);
+      return false;
     }
 
-    Serial.print("SoftAP aktif. IP address: ");
-    Serial.println(WiFi.softAPIP());
-  } else {
-    return;
+    delay(250);
+    Serial.print(".");
   }
 
-  if (WIFI_ENABLE_AP_STA) {
-    Serial.print("SoftAP IP address: ");
-    Serial.println(WiFi.softAPIP());
+  Serial.println("\nWiFi STA terhubung");
+  Serial.print("IP address: ");
+  Serial.println(WiFi.localIP());
+  Serial.printf("Signal strength: %d dBm\n", WiFi.RSSI());
+  return true;
+}
+
+}
+
+bool connectToWiFi()
+{
+  WiFiConfig config;
+  if (!loadWiFiConfig(config)) {
+    Serial.println("Konfigurasi WiFi tidak valid, menggunakan konfigurasi default");
   }
+
+  WiFi.persistent(false);
+
+  if (config.mode == "STA") {
+    return connectStation(config);
+  }
+
+  return startAccessPoint(config);
 }

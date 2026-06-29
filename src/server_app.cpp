@@ -55,6 +55,46 @@ void setupServer() {
   dateTimeAdjustHandler->setMethod(HTTP_POST);
   server.addHandler(dateTimeAdjustHandler);
 
+  AsyncCallbackJsonWebHandler *layout1MessageHandler =
+    new AsyncCallbackJsonWebHandler(
+      "/api/messages/layout1",
+      handleLayout1MessagePostJson
+    );
+  layout1MessageHandler->setMethod(HTTP_POST);
+  server.addHandler(layout1MessageHandler);
+
+  AsyncCallbackJsonWebHandler *layout2MessageHandler =
+    new AsyncCallbackJsonWebHandler(
+      "/api/messages/layout2",
+      handleLayout2MessagePostJson
+    );
+  layout2MessageHandler->setMethod(HTTP_POST);
+  server.addHandler(layout2MessageHandler);
+
+  AsyncCallbackJsonWebHandler *layout3MessageHandler =
+    new AsyncCallbackJsonWebHandler(
+      "/api/messages/layout3",
+      handleLayout3MessagePostJson
+    );
+  layout3MessageHandler->setMethod(HTTP_POST);
+  server.addHandler(layout3MessageHandler);
+
+  AsyncCallbackJsonWebHandler *layout4MessageHandler =
+    new AsyncCallbackJsonWebHandler(
+      "/api/messages/layout4",
+      handleLayout4MessagePostJson
+    );
+  layout4MessageHandler->setMethod(HTTP_POST);
+  server.addHandler(layout4MessageHandler);
+
+  AsyncCallbackJsonWebHandler *wifiConfigHandler =
+    new AsyncCallbackJsonWebHandler(
+      "/api/wifi/config",
+      handleWiFiConfigPostJson
+    );
+  wifiConfigHandler->setMethod(HTTP_POST);
+  server.addHandler(wifiConfigHandler);
+
 
   // server.onNotFound(handleNotFound);
 

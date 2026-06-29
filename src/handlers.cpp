@@ -5,7 +5,67 @@
 #include "utils/json_utils.h"
 #include "storage.h"
 #include "services/prayer_times/prayer_times_service.h"
+#include "services/panel_messages/panel_messages_service.h"
+#include "services/wifi_config/wifi_config_service.h"
 #include "datetime/date_and_time.h"
+#include "panel/panelSetup.h"
+
+namespace {
+
+void handlePanelLayoutMessagePostJson(
+  AsyncWebServerRequest *request,
+  JsonVariant &json,
+  uint8_t layoutNumber
+)
+{
+  PanelMessages panelMessages;
+  String message;
+  if (!updatePanelLayoutMessages(
+        layoutNumber,
+        json.as<JsonVariantConst>(),
+        panelMessages,
+        message
+      )) {
+    sendJsonResponse(request, 400, message.c_str());
+    return;
+  }
+
+  if (!queuePanelMessagesUpdate(panelMessages)) {
+    sendJsonResponse(
+      request,
+      500,
+      "Message tersimpan tetapi gagal diterapkan ke panel"
+    );
+    return;
+  }
+
+  JsonDocument response;
+  response["success"] = true;
+  response["message"] = message;
+  response["layout"] = layoutNumber;
+
+  JsonObject data = response["data"].to<JsonObject>();
+  if (layoutNumber == 1) {
+    data["bottom"] = panelMessages.layout1Bottom;
+    data["repeatCount"] = panelMessages.layout1RepeatCount;
+  } else if (layoutNumber == 2) {
+    data["running"] = panelMessages.layout2Running;
+  } else if (layoutNumber == 3) {
+    JsonArray slides = data["slides"].to<JsonArray>();
+    for (uint8_t i = 0; i < panelMessages.layout3SlideCount; i++) {
+      slides.add(panelMessages.layout3Slides[i]);
+    }
+  } else {
+    data["running"] = panelMessages.layout4Running;
+    data["showPasaran"] = panelMessages.layout4ShowPasaran;
+    data["showHijriDate"] = panelMessages.layout4ShowHijriDate;
+    data["repeatCount"] = panelMessages.layout4RepeatCount;
+  }
+
+  sendJsonDocument(request, 200, response);
+}
+
+}
 
 void handleNotFound(AsyncWebServerRequest *request) {
 
@@ -98,5 +158,60 @@ void handleDateTimeAdjustmentPostJson(AsyncWebServerRequest *request, JsonVarian
   response["success"] = true;
   response["message"] = message;
 
+  sendJsonDocument(request, 200, response);
+}
+
+void handleLayout1MessagePostJson(
+  AsyncWebServerRequest *request,
+  JsonVariant &json
+) {
+  handlePanelLayoutMessagePostJson(request, json, 1);
+}
+
+void handleLayout2MessagePostJson(
+  AsyncWebServerRequest *request,
+  JsonVariant &json
+) {
+  handlePanelLayoutMessagePostJson(request, json, 2);
+}
+
+void handleLayout3MessagePostJson(
+  AsyncWebServerRequest *request,
+  JsonVariant &json
+) {
+  handlePanelLayoutMessagePostJson(request, json, 3);
+}
+
+void handleLayout4MessagePostJson(
+  AsyncWebServerRequest *request,
+  JsonVariant &json
+) {
+  handlePanelLayoutMessagePostJson(request, json, 4);
+}
+
+void handleWiFiConfigPostJson(
+  AsyncWebServerRequest *request,
+  JsonVariant &json
+) {
+  const bool passwordUpdated =
+    json.as<JsonVariantConst>()["password"].is<const char *>();
+  WiFiConfig config;
+  String message;
+  if (!updateWiFiConfig(
+        json.as<JsonVariantConst>(),
+        config,
+        message
+      )) {
+    sendJsonResponse(request, 400, message.c_str());
+    return;
+  }
+
+  JsonDocument response;
+  response["success"] = true;
+  response["message"] = message;
+  response["wifiConfig"]["mode"] = config.mode;
+  response["wifiConfig"]["ssid"] = config.ssid;
+  response["wifiConfig"]["passwordUpdated"] = passwordUpdated;
+  response["restartRequired"] = true;
   sendJsonDocument(request, 200, response);
 }

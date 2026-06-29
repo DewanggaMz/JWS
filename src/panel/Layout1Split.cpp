@@ -90,6 +90,12 @@ bool Layout1Split::isFinished() const
     return finished;
 }
 
+void Layout1Split::setMessage(const String &message, uint8_t newRepeatTarget)
+{
+    bottomMessage = message;
+    repeatTarget = newRepeatTarget == 0 ? 1 : newRepeatTarget;
+}
+
 void Layout1Split::resetTopMessagePosition()
 {
     dmd.selectFont(System5x7);

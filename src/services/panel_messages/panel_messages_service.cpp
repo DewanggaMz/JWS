@@ -8,6 +8,7 @@
 namespace {
 
 const char DEFAULT_LAYOUT1_BOTTOM[] = "MASJID BAITUROHMAH-GUMUKMOJO      ";
+const uint8_t DEFAULT_LAYOUT1_REPEAT_COUNT = 3;
 const char DEFAULT_LAYOUT2_RUNNING[] = "LAYOUT 2  -  INFORMASI BERJALAN DI 3 PANEL P10      ";
 const char DEFAULT_LAYOUT4_RUNNING[] =
     "JAGA KEBERSIHAN DAN KEKHUSYUKAN IBADAH      ";
@@ -27,6 +28,29 @@ const char *DEFAULT_LAYOUT3_SLIDES[] = {
 
 const uint8_t DEFAULT_LAYOUT3_SLIDE_COUNT =
     sizeof(DEFAULT_LAYOUT3_SLIDES) / sizeof(DEFAULT_LAYOUT3_SLIDES[0]);
+const size_t MAX_MESSAGE_LENGTH = 512;
+const size_t MAX_SLIDE_LENGTH = 128;
+
+bool isValidMessage(JsonVariantConst value, size_t maxLength)
+{
+    if (!value.is<const char *>()) {
+        return false;
+    }
+
+    const char *text = value.as<const char *>();
+    const size_t length = text == nullptr ? 0 : strlen(text);
+    return length > 0 && length <= maxLength;
+}
+
+bool isValidRepeatCount(JsonVariantConst value)
+{
+    if (!value.is<int>()) {
+        return false;
+    }
+
+    const int repeatCount = value.as<int>();
+    return repeatCount > 0 && repeatCount <= 255;
+}
 
 bool setStringIfMissing(JsonObject object, const char *key, const char *value)
 {
@@ -85,6 +109,7 @@ bool copyNonEmptyString(JsonVariantConst source, String &target)
 void setDefaultPanelMessages(PanelMessages &messages)
 {
     messages.layout1Bottom = DEFAULT_LAYOUT1_BOTTOM;
+    messages.layout1RepeatCount = DEFAULT_LAYOUT1_REPEAT_COUNT;
     messages.layout2Running = DEFAULT_LAYOUT2_RUNNING;
     messages.layout3SlideCount = DEFAULT_LAYOUT3_SLIDE_COUNT;
     for (uint8_t i = 0; i < DEFAULT_LAYOUT3_SLIDE_COUNT; i++) {
@@ -123,6 +148,11 @@ bool ensurePanelMessages()
                            : panelMessages["layout4"].to<JsonObject>();
 
     changed |= setStringIfMissing(layout1, "bottom", DEFAULT_LAYOUT1_BOTTOM);
+    changed |= setPositiveIntegerIfMissing(
+        layout1,
+        "repeatCount",
+        DEFAULT_LAYOUT1_REPEAT_COUNT
+    );
     changed |= setStringIfMissing(layout2, "running", DEFAULT_LAYOUT2_RUNNING);
     changed |= setBoolIfMissing(
         layout4,
@@ -172,6 +202,13 @@ bool loadPanelMessages(PanelMessages &messages)
 
     JsonObjectConst panelMessages = database["panelMessages"].as<JsonObjectConst>();
     copyNonEmptyString(panelMessages["layout1"]["bottom"], messages.layout1Bottom);
+    if (panelMessages["layout1"]["repeatCount"].is<int>()) {
+        const int repeatCount =
+            panelMessages["layout1"]["repeatCount"].as<int>();
+        if (repeatCount > 0 && repeatCount <= 255) {
+            messages.layout1RepeatCount = static_cast<uint8_t>(repeatCount);
+        }
+    }
     copyNonEmptyString(panelMessages["layout2"]["running"], messages.layout2Running);
     copyNonEmptyString(panelMessages["layout4"]["running"], messages.layout4Running);
 
@@ -217,5 +254,143 @@ bool loadPanelMessages(PanelMessages &messages)
         }
     }
 
+    return true;
+}
+
+bool updatePanelLayoutMessages(
+    uint8_t layoutNumber,
+    JsonVariantConst payload,
+    PanelMessages &messages,
+    String &message
+)
+{
+    if (!payload.is<JsonObjectConst>()) {
+        message = "Payload message layout harus berupa object";
+        return false;
+    }
+
+    if (layoutNumber < 1 || layoutNumber > 4) {
+        message = "Nomor layout harus antara 1 sampai 4";
+        return false;
+    }
+
+    JsonObjectConst input = payload.as<JsonObjectConst>();
+    JsonDocument database;
+    loadDatabase(database);
+    JsonObject panelMessages = database["panelMessages"].is<JsonObject>()
+                                 ? database["panelMessages"].as<JsonObject>()
+                                 : database["panelMessages"].to<JsonObject>();
+    char layoutKey[] = "layout0";
+    layoutKey[6] = static_cast<char>('0' + layoutNumber);
+    JsonObject layout = panelMessages[layoutKey].is<JsonObject>()
+                          ? panelMessages[layoutKey].as<JsonObject>()
+                          : panelMessages[layoutKey].to<JsonObject>();
+    bool changed = false;
+
+    if (layoutNumber == 1) {
+        if (!input["bottom"].isUnbound()) {
+            if (!isValidMessage(input["bottom"], MAX_MESSAGE_LENGTH)) {
+                message = "Field bottom wajib berupa string 1 sampai 512 karakter";
+                return false;
+            }
+            layout["bottom"] = input["bottom"].as<const char *>();
+            changed = true;
+        }
+
+        if (!input["repeatCount"].isUnbound()) {
+            if (!isValidRepeatCount(input["repeatCount"])) {
+                message = "Field repeatCount harus berupa angka 1 sampai 255";
+                return false;
+            }
+            layout["repeatCount"] = input["repeatCount"].as<int>();
+            changed = true;
+        }
+    } else if (layoutNumber == 2) {
+        if (!input["running"].isUnbound()) {
+            if (!isValidMessage(input["running"], MAX_MESSAGE_LENGTH)) {
+                message = "Field running wajib berupa string 1 sampai 512 karakter";
+                return false;
+            }
+            layout["running"] = input["running"].as<const char *>();
+            changed = true;
+        }
+    } else if (layoutNumber == 3) {
+        if (!input["slides"].isUnbound()) {
+            if (!input["slides"].is<JsonArrayConst>()) {
+                message = "Field slides harus berupa array string";
+                return false;
+            }
+
+            JsonArrayConst slides = input["slides"].as<JsonArrayConst>();
+            if (slides.size() == 0 ||
+                slides.size() > PanelMessages::MAX_LAYOUT3_SLIDES) {
+                message = "Field slides harus berisi 1 sampai 12 item";
+                return false;
+            }
+
+            for (JsonVariantConst slide : slides) {
+                if (!isValidMessage(slide, MAX_SLIDE_LENGTH)) {
+                    message = "Setiap slide wajib berupa string 1 sampai 128 karakter";
+                    return false;
+                }
+            }
+
+            layout["slides"].set(slides);
+            changed = true;
+        }
+    } else {
+        if (!input["running"].isUnbound()) {
+            if (!isValidMessage(input["running"], MAX_MESSAGE_LENGTH)) {
+                message = "Field running wajib berupa string 1 sampai 512 karakter";
+                return false;
+            }
+            layout["running"] = input["running"].as<const char *>();
+            changed = true;
+        }
+
+        if (!input["showPasaran"].isUnbound()) {
+            if (!input["showPasaran"].is<bool>()) {
+                message = "Field showPasaran harus berupa boolean";
+                return false;
+            }
+            layout["showPasaran"] = input["showPasaran"].as<bool>();
+            changed = true;
+        }
+
+        if (!input["showHijriDate"].isUnbound()) {
+            if (!input["showHijriDate"].is<bool>()) {
+                message = "Field showHijriDate harus berupa boolean";
+                return false;
+            }
+            layout["showHijriDate"] = input["showHijriDate"].as<bool>();
+            changed = true;
+        }
+
+        if (!input["repeatCount"].isUnbound()) {
+            if (!isValidRepeatCount(input["repeatCount"])) {
+                message = "Field repeatCount harus berupa angka 1 sampai 255";
+                return false;
+            }
+            layout["repeatCount"] = input["repeatCount"].as<int>();
+            changed = true;
+        }
+    }
+
+    if (!changed) {
+        message = "Tidak ada field layout yang dikenali";
+        return false;
+    }
+
+    if (!saveDatabase(database)) {
+        message = "Gagal menyimpan message layout";
+        return false;
+    }
+
+    if (!loadPanelMessages(messages)) {
+        message = "Message tersimpan tetapi gagal dimuat ulang";
+        return false;
+    }
+
+    message = "Message layout berhasil diperbarui";
     return true;
 }

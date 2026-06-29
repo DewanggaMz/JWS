@@ -65,3 +65,8 @@ bool Layout2FullRunning::isFinished() const
 {
     return finished;
 }
+
+void Layout2FullRunning::setMessage(const String &newMessage)
+{
+    message = newMessage;
+}

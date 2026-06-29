@@ -11,3 +11,8 @@ void handleHelloWorldPostJson(AsyncWebServerRequest *request, JsonVariant &json)
 void handleDatabasePostJson(AsyncWebServerRequest *request, JsonVariant &json);
 void handlePrayerConfigPostJson(AsyncWebServerRequest *request, JsonVariant &json);
 void handleDateTimeAdjustmentPostJson(AsyncWebServerRequest *request, JsonVariant &json);
+void handleLayout1MessagePostJson(AsyncWebServerRequest *request, JsonVariant &json);
+void handleLayout2MessagePostJson(AsyncWebServerRequest *request, JsonVariant &json);
+void handleLayout3MessagePostJson(AsyncWebServerRequest *request, JsonVariant &json);
+void handleLayout4MessagePostJson(AsyncWebServerRequest *request, JsonVariant &json);
+void handleWiFiConfigPostJson(AsyncWebServerRequest *request, JsonVariant &json);

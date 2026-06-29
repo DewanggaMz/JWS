@@ -19,6 +19,13 @@ class Layout4PrayerSchedule : public PanelLayout {
     void update(const ClockState &clock) override;
     void render(const ClockState &clock) override;
     bool isFinished() const override;
+    void setConfiguration(
+      const String &runningMessage,
+      bool showPasaran,
+      bool showHijriDate,
+      uint8_t repeatTarget,
+      int hijriCorrection
+    );
 
   private:
     enum TopMode {
