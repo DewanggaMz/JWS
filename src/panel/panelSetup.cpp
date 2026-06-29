@@ -10,6 +10,7 @@
 #include "panel/Layout2FullRunning.h"
 #include "panel/Layout3SlideText.h"
 #include "panel/Layout4PrayerSchedule.h"
+#include "panel/Layout5PrayerCountdown.h"
 #include "panel/PanelAnimations.h"
 
 static const uint32_t DMD_REFRESH_MS = 1;
@@ -23,6 +24,7 @@ Layout1Split *layout1 = nullptr;
 Layout2FullRunning *layout2 = nullptr;
 Layout3SlideText *layout3 = nullptr;
 Layout4PrayerSchedule *layout4 = nullptr;
+Layout5PrayerCountdown *layout5 = nullptr;
 SemaphoreHandle_t panelMessagesMutex = nullptr;
 PanelMessages pendingPanelMessages;
 bool panelMessagesUpdatePending = false;
@@ -123,6 +125,7 @@ void setupPanelInit(
     messages.layout4RepeatCount,
     messages.layout4HijriCorrection
   );
+  layout5 = new Layout5PrayerCountdown(dmd, schedule);
 
   layout1->setPrayerDisplayConfig(
     messages.layout1ShowImsak,
@@ -131,9 +134,10 @@ void setupPanelInit(
   );
   layout1->setPrayerSchedule(schedule);
 
-  panelAnimations.addLayout(*layout1);
+  // panelAnimations.addLayout(*layout1);
   // panelAnimations.addLayout(*layout3);
   panelAnimations.addLayout(*layout4);
+  panelAnimations.addLayout(*layout5);
   // panelAnimations.addLayout(*layout2);
   panelAnimations.begin(time.hour, time.minute, time.second);
 
@@ -162,6 +166,9 @@ void setPanelClock(uint8_t hour, uint8_t minute, uint8_t second) {
 void setPanelPrayerSchedule(const PrayerSchedule &schedule) {
   if (layout1 != nullptr) {
     layout1->setPrayerSchedule(schedule);
+  }
+  if (layout5 != nullptr) {
+    layout5->setPrayerSchedule(schedule);
   }
 }
 
