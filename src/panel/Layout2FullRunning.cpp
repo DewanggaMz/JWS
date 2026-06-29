@@ -5,14 +5,18 @@
 #include "fonts/Arial14.h"
 
 namespace {
-const uint32_t SCROLL_MS = 70;
 const int CHAR_SPACING = 2;
 }
 
-Layout2FullRunning::Layout2FullRunning(DMD &display, const String &message)
+Layout2FullRunning::Layout2FullRunning(
+    DMD &display,
+    const String &message,
+    uint16_t speedMs
+)
     : dmd(display),
       textX(SCREEN_WIDTH),
       lastScrollAt(0),
+      scrollMs(speedMs),
       finished(false),
       message(message)
 {
@@ -33,7 +37,7 @@ void Layout2FullRunning::update(const ClockState &clock)
     dmd.selectFont(Arial_14);
 
     const uint32_t now = millis();
-    if (now - lastScrollAt < SCROLL_MS) {
+    if (now - lastScrollAt < scrollMs) {
         return;
     }
     lastScrollAt = now;
@@ -66,7 +70,11 @@ bool Layout2FullRunning::isFinished() const
     return finished;
 }
 
-void Layout2FullRunning::setMessage(const String &newMessage)
+void Layout2FullRunning::setMessage(
+    const String &newMessage,
+    uint16_t speedMs
+)
 {
     message = newMessage;
+    scrollMs = speedMs;
 }

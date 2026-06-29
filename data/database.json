@@ -28,6 +28,15 @@
   "hijriConfig": {
     "correct": 1
   },
+  "panelConfig": {
+    "brightness": 200,
+    "dimSchedule": {
+      "enabled": true,
+      "startTime": "22:00",
+      "endTime": "04:00",
+      "dimBrightness": 50
+    }
+  },
   "wifiConfig": {
     "mode": "STA",
     "ssid": "unknown_fuz",
@@ -50,6 +59,7 @@
     "layout1": {
       "bottom": "MASJID BAITUROHMAH-GUMUKMOJO      ",
       "repeatCount": 3,
+      "speedMs": 65,
       "prayerDisplay": {
         "showImsak": true,
         "showSunrise": true,
@@ -57,7 +67,8 @@
       }
     },
     "layout2": {
-      "running": "LAYOUT 2  -  INFORMASI BERJALAN DI 3 PANEL P10      "
+      "running": "LAYOUT 2  -  INFORMASI BERJALAN DI 3 PANEL P10      ",
+      "speedMs": 70
     },
     "layout3": {
       "slides": [
@@ -73,7 +84,11 @@
       "showPasaran": true,
       "showHijriDate": true,
       "repeatCount": 1,
-      "running": "JAGA KEBERSIHAN DAN KEKHUSYUKAN IBADAH      "
+      "running": "JAGA KEBERSIHAN DAN KEKHUSYUKAN IBADAH      ",
+      "speedMs": 55
+    },
+    "layout5": {
+      "speedMs": 65
     }
   }
 }

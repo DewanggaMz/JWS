@@ -19,12 +19,16 @@ const uint32_t TOP_ANIM_MS = 70;
 const uint32_t TOP_PRE_SCROLL_HOLD_MS = 900;
 const uint32_t TOP_SCROLL_MS = 90;
 const uint32_t TOP_HOLD_MS = 1800;
-const uint32_t BOTTOM_SCROLL_MS = 65;
 const int TOP_CHAR_SPACING = 1;
 const int BOTTOM_CHAR_SPACING = 3;
 }
 
-Layout1Split::Layout1Split(DMD &display, const String &bottomMessage, uint8_t repeatTarget)
+Layout1Split::Layout1Split(
+    DMD &display,
+    const String &bottomMessage,
+    uint8_t repeatTarget,
+    uint16_t speedMs
+)
     : dmd(display),
       topState(TOP_ANIM_IN),
       repeatTarget(repeatTarget),
@@ -37,6 +41,7 @@ Layout1Split::Layout1Split(DMD &display, const String &bottomMessage, uint8_t re
       lastTopScrollAt(0),
       lastTopHoldAt(0),
       lastBottomScrollAt(0),
+      bottomScrollMs(speedMs),
       finished(false),
       bottomMessage(bottomMessage),
       currentSchedule{},
@@ -93,10 +98,15 @@ bool Layout1Split::isFinished() const
     return finished;
 }
 
-void Layout1Split::setMessage(const String &message, uint8_t newRepeatTarget)
+void Layout1Split::setMessage(
+    const String &message,
+    uint8_t newRepeatTarget,
+    uint16_t speedMs
+)
 {
     bottomMessage = message;
     repeatTarget = newRepeatTarget == 0 ? 1 : newRepeatTarget;
+    bottomScrollMs = speedMs;
 }
 
 void Layout1Split::resetTopMessagePosition()
@@ -200,7 +210,7 @@ void Layout1Split::updateBottomScroll()
     dmd.selectFont(System5x7);
 
     const uint32_t now = millis();
-    if (now - lastBottomScrollAt < BOTTOM_SCROLL_MS) {
+    if (now - lastBottomScrollAt < bottomScrollMs) {
         return;
     }
     lastBottomScrollAt = now;

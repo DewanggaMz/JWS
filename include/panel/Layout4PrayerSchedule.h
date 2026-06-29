@@ -12,7 +12,8 @@ class Layout4PrayerSchedule : public PanelLayout {
       bool showPasaran,
       bool showHijriDate,
       uint8_t repeatTarget,
-      int hijriCorrection
+      int hijriCorrection,
+      uint16_t speedMs = 55
     );
 
     void begin() override;
@@ -24,7 +25,8 @@ class Layout4PrayerSchedule : public PanelLayout {
       bool showPasaran,
       bool showHijriDate,
       uint8_t repeatTarget,
-      int hijriCorrection
+      int hijriCorrection,
+      uint16_t speedMs
     );
 
   private:
@@ -56,6 +58,7 @@ class Layout4PrayerSchedule : public PanelLayout {
     uint32_t topHoldStartedAt;
     uint32_t lastBottomAnimAt;
     uint32_t lastLightAt;
+    uint16_t bottomScrollMs;
     bool finished;
     bool showPasaran;
     bool showHijriDate;

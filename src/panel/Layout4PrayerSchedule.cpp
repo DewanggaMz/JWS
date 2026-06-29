@@ -22,7 +22,6 @@ const int TOP_CHAR_LIGHT_SPACING = 1;
 const int BOTTOM_CHAR_SPACING = 3;
 const uint32_t TOP_ANIM_MS = 70;
 const uint32_t TOP_HOLD_MS = 4000;
-const uint32_t BOTTOM_SCROLL_MS = 55;
 const uint32_t LIGHT_MS = 45;
 
 void uppercaseCopy(char *target, size_t targetSize, const char *source)
@@ -49,7 +48,8 @@ Layout4PrayerSchedule::Layout4PrayerSchedule(
   bool showPasaran,
   bool showHijriDate,
   uint8_t repeatTarget,
-  int hijriCorrection
+  int hijriCorrection,
+  uint16_t speedMs
 )
     : dmd(display),
       topMode(TOP_TIME),
@@ -64,6 +64,7 @@ Layout4PrayerSchedule::Layout4PrayerSchedule(
       topHoldStartedAt(0),
       lastBottomAnimAt(0),
       lastLightAt(0),
+      bottomScrollMs(speedMs),
       finished(false),
       showPasaran(showPasaran),
       showHijriDate(showHijriDate),
@@ -117,7 +118,8 @@ void Layout4PrayerSchedule::setConfiguration(
   bool newShowPasaran,
   bool newShowHijriDate,
   uint8_t newRepeatTarget,
-  int newHijriCorrection
+  int newHijriCorrection,
+  uint16_t speedMs
 )
 {
   runningMessage = newRunningMessage;
@@ -125,6 +127,7 @@ void Layout4PrayerSchedule::setConfiguration(
   showHijriDate = newShowHijriDate;
   repeatTarget = newRepeatTarget == 0 ? 1 : newRepeatTarget;
   hijriCorrection = newHijriCorrection;
+  bottomScrollMs = speedMs;
   updateHijriText();
 }
 
@@ -258,7 +261,7 @@ void Layout4PrayerSchedule::updateTopAnimation()
 void Layout4PrayerSchedule::updateBottomAnimation()
 {
   const uint32_t now = millis();
-  if (now - lastBottomAnimAt < BOTTOM_SCROLL_MS) {
+  if (now - lastBottomAnimAt < bottomScrollMs) {
     return;
   }
   lastBottomAnimAt = now;

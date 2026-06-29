@@ -12,13 +12,19 @@ const uint8_t DEFAULT_LAYOUT1_REPEAT_COUNT = 3;
 const bool DEFAULT_LAYOUT1_SHOW_IMSAK = true;
 const bool DEFAULT_LAYOUT1_SHOW_SUNRISE = true;
 const bool DEFAULT_LAYOUT1_SHOW_DHUHA = true;
+const uint16_t DEFAULT_LAYOUT1_SPEED_MS = 65;
 const char DEFAULT_LAYOUT2_RUNNING[] = "LAYOUT 2  -  INFORMASI BERJALAN DI 3 PANEL P10      ";
+const uint16_t DEFAULT_LAYOUT2_SPEED_MS = 70;
 const char DEFAULT_LAYOUT4_RUNNING[] =
     "JAGA KEBERSIHAN DAN KEKHUSYUKAN IBADAH      ";
 const char LEGACY_LAYOUT4_BOTTOM[] = "      12 JUMADIL AKHIR 1448 H      ";
 const bool DEFAULT_LAYOUT4_SHOW_PASARAN = true;
 const bool DEFAULT_LAYOUT4_SHOW_HIJRI_DATE = true;
 const uint8_t DEFAULT_LAYOUT4_REPEAT_COUNT = 1;
+const uint16_t DEFAULT_LAYOUT4_SPEED_MS = 55;
+const uint16_t DEFAULT_LAYOUT5_SPEED_MS = 65;
+const uint16_t MIN_SPEED_MS = 10;
+const uint16_t MAX_SPEED_MS = 1000;
 
 const char *DEFAULT_LAYOUT3_SLIDES[] = {
     "10 MENIT",
@@ -53,6 +59,16 @@ bool isValidRepeatCount(JsonVariantConst value)
 
     const int repeatCount = value.as<int>();
     return repeatCount > 0 && repeatCount <= 255;
+}
+
+bool isValidSpeed(JsonVariantConst value)
+{
+    if (!value.is<int>()) {
+        return false;
+    }
+
+    const int speedMs = value.as<int>();
+    return speedMs >= MIN_SPEED_MS && speedMs <= MAX_SPEED_MS;
 }
 
 bool setStringIfMissing(JsonObject object, const char *key, const char *value)
@@ -92,6 +108,19 @@ bool setPositiveIntegerIfMissing(
     return true;
 }
 
+bool setSpeedIfMissing(
+    JsonObject object,
+    uint16_t value
+)
+{
+    if (isValidSpeed(object["speedMs"])) {
+        return false;
+    }
+
+    object["speedMs"] = value;
+    return true;
+}
+
 bool copyNonEmptyString(JsonVariantConst source, String &target)
 {
     if (!source.is<const char *>()) {
@@ -113,10 +142,12 @@ void setDefaultPanelMessages(PanelMessages &messages)
 {
     messages.layout1Bottom = DEFAULT_LAYOUT1_BOTTOM;
     messages.layout1RepeatCount = DEFAULT_LAYOUT1_REPEAT_COUNT;
+    messages.layout1SpeedMs = DEFAULT_LAYOUT1_SPEED_MS;
     messages.layout1ShowImsak = DEFAULT_LAYOUT1_SHOW_IMSAK;
     messages.layout1ShowSunrise = DEFAULT_LAYOUT1_SHOW_SUNRISE;
     messages.layout1ShowDhuha = DEFAULT_LAYOUT1_SHOW_DHUHA;
     messages.layout2Running = DEFAULT_LAYOUT2_RUNNING;
+    messages.layout2SpeedMs = DEFAULT_LAYOUT2_SPEED_MS;
     messages.layout3SlideCount = DEFAULT_LAYOUT3_SLIDE_COUNT;
     for (uint8_t i = 0; i < DEFAULT_LAYOUT3_SLIDE_COUNT; i++) {
         messages.layout3Slides[i] = DEFAULT_LAYOUT3_SLIDES[i];
@@ -126,6 +157,8 @@ void setDefaultPanelMessages(PanelMessages &messages)
     messages.layout4RepeatCount = DEFAULT_LAYOUT4_REPEAT_COUNT;
     messages.layout4HijriCorrection = 1;
     messages.layout4Running = DEFAULT_LAYOUT4_RUNNING;
+    messages.layout4SpeedMs = DEFAULT_LAYOUT4_SPEED_MS;
+    messages.layout5SpeedMs = DEFAULT_LAYOUT5_SPEED_MS;
 }
 
 bool ensurePanelMessages()
@@ -152,6 +185,9 @@ bool ensurePanelMessages()
     JsonObject layout4 = panelMessages["layout4"].is<JsonObject>()
                            ? panelMessages["layout4"].as<JsonObject>()
                            : panelMessages["layout4"].to<JsonObject>();
+    JsonObject layout5 = panelMessages["layout5"].is<JsonObject>()
+                           ? panelMessages["layout5"].as<JsonObject>()
+                           : panelMessages["layout5"].to<JsonObject>();
 
     changed |= setStringIfMissing(layout1, "bottom", DEFAULT_LAYOUT1_BOTTOM);
     changed |= setPositiveIntegerIfMissing(
@@ -159,6 +195,7 @@ bool ensurePanelMessages()
         "repeatCount",
         DEFAULT_LAYOUT1_REPEAT_COUNT
     );
+    changed |= setSpeedIfMissing(layout1, DEFAULT_LAYOUT1_SPEED_MS);
     JsonObject layout1PrayerDisplay =
         layout1["prayerDisplay"].is<JsonObject>()
           ? layout1["prayerDisplay"].as<JsonObject>()
@@ -179,6 +216,7 @@ bool ensurePanelMessages()
         DEFAULT_LAYOUT1_SHOW_DHUHA
     );
     changed |= setStringIfMissing(layout2, "running", DEFAULT_LAYOUT2_RUNNING);
+    changed |= setSpeedIfMissing(layout2, DEFAULT_LAYOUT2_SPEED_MS);
     changed |= setBoolIfMissing(
         layout4,
         "showPasaran",
@@ -194,6 +232,8 @@ bool ensurePanelMessages()
         "repeatCount",
         DEFAULT_LAYOUT4_REPEAT_COUNT
     );
+    changed |= setSpeedIfMissing(layout4, DEFAULT_LAYOUT4_SPEED_MS);
+    changed |= setSpeedIfMissing(layout5, DEFAULT_LAYOUT5_SPEED_MS);
 
     if (!layout4["running"].is<const char *>() ||
         layout4["running"].as<const char *>()[0] == '\0') {
@@ -234,6 +274,10 @@ bool loadPanelMessages(PanelMessages &messages)
             messages.layout1RepeatCount = static_cast<uint8_t>(repeatCount);
         }
     }
+    if (isValidSpeed(panelMessages["layout1"]["speedMs"])) {
+        messages.layout1SpeedMs =
+            panelMessages["layout1"]["speedMs"].as<uint16_t>();
+    }
     JsonObjectConst layout1PrayerDisplay =
         panelMessages["layout1"]["prayerDisplay"].as<JsonObjectConst>();
     if (layout1PrayerDisplay["showImsak"].is<bool>()) {
@@ -249,6 +293,10 @@ bool loadPanelMessages(PanelMessages &messages)
             layout1PrayerDisplay["showDhuha"].as<bool>();
     }
     copyNonEmptyString(panelMessages["layout2"]["running"], messages.layout2Running);
+    if (isValidSpeed(panelMessages["layout2"]["speedMs"])) {
+        messages.layout2SpeedMs =
+            panelMessages["layout2"]["speedMs"].as<uint16_t>();
+    }
     copyNonEmptyString(panelMessages["layout4"]["running"], messages.layout4Running);
 
     if (panelMessages["layout4"]["showPasaran"].is<bool>()) {
@@ -267,6 +315,14 @@ bool loadPanelMessages(PanelMessages &messages)
         if (repeatCount > 0 && repeatCount <= 255) {
             messages.layout4RepeatCount = static_cast<uint8_t>(repeatCount);
         }
+    }
+    if (isValidSpeed(panelMessages["layout4"]["speedMs"])) {
+        messages.layout4SpeedMs =
+            panelMessages["layout4"]["speedMs"].as<uint16_t>();
+    }
+    if (isValidSpeed(panelMessages["layout5"]["speedMs"])) {
+        messages.layout5SpeedMs =
+            panelMessages["layout5"]["speedMs"].as<uint16_t>();
     }
 
     if (database["hijriConfig"]["correct"].is<int>()) {
@@ -308,8 +364,8 @@ bool updatePanelLayoutMessages(
         return false;
     }
 
-    if (layoutNumber < 1 || layoutNumber > 4) {
-        message = "Nomor layout harus antara 1 sampai 4";
+    if (layoutNumber < 1 || layoutNumber > 5) {
+        message = "Nomor layout harus antara 1 sampai 5";
         return false;
     }
 
@@ -325,6 +381,15 @@ bool updatePanelLayoutMessages(
                           ? panelMessages[layoutKey].as<JsonObject>()
                           : panelMessages[layoutKey].to<JsonObject>();
     bool changed = false;
+
+    if (layoutNumber != 3 && !input["speedMs"].isUnbound()) {
+        if (!isValidSpeed(input["speedMs"])) {
+            message = "Field speedMs harus berupa angka 10 sampai 1000";
+            return false;
+        }
+        layout["speedMs"] = input["speedMs"].as<int>();
+        changed = true;
+    }
 
     if (layoutNumber == 1) {
         if (!input["bottom"].isUnbound()) {
@@ -377,7 +442,7 @@ bool updatePanelLayoutMessages(
             layout["slides"].set(slides);
             changed = true;
         }
-    } else {
+    } else if (layoutNumber == 4) {
         if (!input["running"].isUnbound()) {
             if (!isValidMessage(input["running"], MAX_MESSAGE_LENGTH)) {
                 message = "Field running wajib berupa string 1 sampai 512 karakter";

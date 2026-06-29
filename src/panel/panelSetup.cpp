@@ -15,7 +15,6 @@
 
 static const uint32_t DMD_REFRESH_MS = 1;
 static const uint32_t FRAME_MS = 30;
-static const uint8_t PANEL_BRIGHTNESS = 200;
 
 DMD dmd(DISPLAYS_ACROSS, DISPLAYS_DOWN);
 Ticker dmdTicker;
@@ -28,6 +27,9 @@ Layout5PrayerCountdown *layout5 = nullptr;
 SemaphoreHandle_t panelMessagesMutex = nullptr;
 PanelMessages pendingPanelMessages;
 bool panelMessagesUpdatePending = false;
+PanelConfig activePanelConfig{200, true, 1320, 240, 50};
+PanelConfig pendingPanelConfig{200, true, 1320, 240, 50};
+bool panelConfigUpdatePending = false;
 
 uint32_t lastFrameAt = 0;
 
@@ -47,7 +49,8 @@ namespace{
     if (layout1 != nullptr) {
       layout1->setMessage(
         messages.layout1Bottom,
-        messages.layout1RepeatCount
+        messages.layout1RepeatCount,
+        messages.layout1SpeedMs
       );
       layout1->setPrayerDisplayConfig(
         messages.layout1ShowImsak,
@@ -57,7 +60,10 @@ namespace{
     }
 
     if (layout2 != nullptr) {
-      layout2->setMessage(messages.layout2Running);
+      layout2->setMessage(
+        messages.layout2Running,
+        messages.layout2SpeedMs
+      );
     }
 
     if (layout3 != nullptr) {
@@ -73,8 +79,13 @@ namespace{
         messages.layout4ShowPasaran,
         messages.layout4ShowHijriDate,
         messages.layout4RepeatCount,
-        messages.layout4HijriCorrection
+        messages.layout4HijriCorrection,
+        messages.layout4SpeedMs
       );
+    }
+
+    if (layout5 != nullptr) {
+      layout5->setRunningSpeed(messages.layout5SpeedMs);
     }
   }
 
@@ -89,6 +100,10 @@ namespace{
       applyPanelMessages(pendingPanelMessages);
       panelMessagesUpdatePending = false;
     }
+    if (panelConfigUpdatePending) {
+      activePanelConfig = pendingPanelConfig;
+      panelConfigUpdatePending = false;
+    }
 
     xSemaphoreGive(panelMessagesMutex);
   }
@@ -97,21 +112,28 @@ namespace{
 void setupPanelInit(
   const Time &time,
   const PrayerSchedule &schedule,
-  const PanelMessages &messages
+  const PanelMessages &messages,
+  const PanelConfig &panelConfig
 ) {
   if (panelMessagesMutex == nullptr) {
     panelMessagesMutex = xSemaphoreCreateMutex();
   }
 
   dmd.clearScreen(true);
-  dmd.setBrightness(PANEL_BRIGHTNESS);
+  activePanelConfig = panelConfig;
+  updatePanelBrightness(time);
 
   layout1 = new Layout1Split(
     dmd,
     messages.layout1Bottom,
-    messages.layout1RepeatCount
+    messages.layout1RepeatCount,
+    messages.layout1SpeedMs
   );
-  layout2 = new Layout2FullRunning(dmd, messages.layout2Running);
+  layout2 = new Layout2FullRunning(
+    dmd,
+    messages.layout2Running,
+    messages.layout2SpeedMs
+  );
   layout3 = new Layout3SlideText(
     dmd,
     messages.layout3Slides,
@@ -123,9 +145,14 @@ void setupPanelInit(
     messages.layout4ShowPasaran,
     messages.layout4ShowHijriDate,
     messages.layout4RepeatCount,
-    messages.layout4HijriCorrection
+    messages.layout4HijriCorrection,
+    messages.layout4SpeedMs
   );
-  layout5 = new Layout5PrayerCountdown(dmd, schedule);
+  layout5 = new Layout5PrayerCountdown(
+    dmd,
+    schedule,
+    messages.layout5SpeedMs
+  );
 
   layout1->setPrayerDisplayConfig(
     messages.layout1ShowImsak,
@@ -182,4 +209,42 @@ bool queuePanelMessagesUpdate(const PanelMessages &messages) {
   panelMessagesUpdatePending = true;
   xSemaphoreGive(panelMessagesMutex);
   return true;
+}
+
+bool queuePanelConfigUpdate(const PanelConfig &config) {
+  if (panelMessagesMutex == nullptr ||
+      xSemaphoreTake(panelMessagesMutex, pdMS_TO_TICKS(100)) != pdTRUE) {
+    return false;
+  }
+
+  pendingPanelConfig = config;
+  panelConfigUpdatePending = true;
+  xSemaphoreGive(panelMessagesMutex);
+  return true;
+}
+
+void updatePanelBrightness(const Time &time) {
+  const uint16_t currentMinutes =
+    static_cast<uint16_t>(time.hour * 60U + time.minute);
+  bool withinDimSchedule = false;
+
+  if (activePanelConfig.dimEnabled) {
+    if (activePanelConfig.dimStartMinutes <
+        activePanelConfig.dimEndMinutes) {
+      withinDimSchedule =
+        currentMinutes >= activePanelConfig.dimStartMinutes &&
+        currentMinutes < activePanelConfig.dimEndMinutes;
+    } else {
+      withinDimSchedule =
+        currentMinutes >= activePanelConfig.dimStartMinutes ||
+        currentMinutes < activePanelConfig.dimEndMinutes;
+    }
+  }
+
+  const uint8_t targetBrightness = withinDimSchedule
+                                     ? activePanelConfig.dimBrightness
+                                     : activePanelConfig.brightness;
+  if (dmd.getBrightness() != targetBrightness) {
+    dmd.setBrightness(targetBrightness);
+  }
 }

@@ -11,6 +11,7 @@ Firmware jadwal waktu sholat berbasis ESP32 untuk panel P10 3×1
 - Jadwal dihitung ulang ketika tanggal berganti dan setelah konfigurasi
   prayer diperbarui.
 - Konfigurasi persisten dalam `/database.json` di LittleFS.
+- Kecerahan panel dan kecepatan running text dapat diubah secara live.
 - Koneksi Wi-Fi mode AP atau STA.
 - Web API JSON dengan CORS.
 - Lima layout panel:
@@ -117,6 +118,15 @@ Struktur utamanya:
   "hijriConfig": {
     "correct": 1
   },
+  "panelConfig": {
+    "brightness": 200,
+    "dimSchedule": {
+      "enabled": true,
+      "startTime": "22:00",
+      "endTime": "04:00",
+      "dimBrightness": 50
+    }
+  },
   "wifiConfig": {
     "mode": "AP",
     "ssid": "JWS-ESP32",
@@ -139,6 +149,7 @@ Struktur utamanya:
     "layout1": {
       "bottom": "NAMA MASJID",
       "repeatCount": 3,
+      "speedMs": 65,
       "prayerDisplay": {
         "showImsak": true,
         "showSunrise": true,
@@ -146,7 +157,8 @@ Struktur utamanya:
       }
     },
     "layout2": {
-      "running": "PESAN LAYOUT 2"
+      "running": "PESAN LAYOUT 2",
+      "speedMs": 70
     },
     "layout3": {
       "slides": ["SLIDE 1", "SLIDE 2"]
@@ -155,7 +167,11 @@ Struktur utamanya:
       "showPasaran": true,
       "showHijriDate": true,
       "repeatCount": 1,
-      "running": "PESAN LAYOUT 4"
+      "running": "PESAN LAYOUT 4",
+      "speedMs": 55
+    },
+    "layout5": {
+      "speedMs": 65
     }
   }
 }
@@ -174,7 +190,10 @@ Struktur utamanya:
 | POST | `/api/messages/layout2` | Mengubah pesan Layout 2 |
 | POST | `/api/messages/layout3` | Mengubah slide Layout 3 |
 | POST | `/api/messages/layout4` | Mengubah pesan/opsi Layout 4 |
+| POST | `/api/messages/layout5` | Mengubah kecepatan running text Layout 5 |
 | POST | `/api/layout1/prayer-times` | Mengatur item jadwal opsional Layout 1 |
+| POST | `/api/panel/brightness` | Mengubah kecerahan panel |
+| POST | `/api/panel/brightness-schedule` | Mengatur jadwal redup panel |
 | POST | `/api/wifi/config` | Mengubah mode dan kredensial Wi-Fi |
 | POST | `/api/relay/config` | Mengubah timing scheduler relay |
 | POST | `/api/relay/prayer-states` | Mengaktifkan scheduler per waktu sholat |
@@ -279,22 +298,26 @@ ikut diperbarui.
 ```json
 {
   "bottom": "MASJID BAITUROHMAH",
-  "repeatCount": 3
+  "repeatCount": 3,
+  "speedMs": 65
 }
 ```
 
 - `bottom`: string 1–512 karakter.
 - `repeatCount`: angka 1–255.
+- `speedMs`: kecepatan running text 10–1000 ms.
 
 ### `POST /api/messages/layout2`
 
 ```json
 {
-  "running": "INFORMASI KEGIATAN MASJID"
+  "running": "INFORMASI KEGIATAN MASJID",
+  "speedMs": 70
 }
 ```
 
 `running` harus berupa string 1–512 karakter.
+`speedMs` harus antara 10–1000 ms.
 
 ### `POST /api/messages/layout3`
 
@@ -319,7 +342,8 @@ karakter.
   "running": "JAGA KEBERSIHAN MASJID",
   "showPasaran": true,
   "showHijriDate": true,
-  "repeatCount": 1
+  "repeatCount": 1,
+  "speedMs": 55
 }
 ```
 
@@ -327,6 +351,20 @@ karakter.
 - `showPasaran`: boolean.
 - `showHijriDate`: boolean.
 - `repeatCount`: angka 1–255.
+- `speedMs`: kecepatan running text 10–1000 ms.
+
+### `POST /api/messages/layout5`
+
+Layout 5 memakai pesan otomatis berdasarkan sholat berikutnya. Endpoint
+ini mengatur kecepatan running text bagian bawah.
+
+```json
+{
+  "speedMs": 65
+}
+```
+
+`speedMs` harus antara 10–1000 ms.
 
 ### `POST /api/layout1/prayer-times`
 
@@ -361,6 +399,46 @@ Konfigurasi disimpan langsung, tetapi baru aktif setelah perangkat
 direstart. Respons memuat `"restartRequired": true`.
 
 Jika mode STA gagal terhubung selama 15 detik, koneksi dianggap gagal.
+
+### `POST /api/panel/brightness`
+
+Mengubah kecerahan panel dan menyimpannya ke `panelConfig`.
+
+```json
+{
+  "brightness": 200
+}
+```
+
+Nilai brightness adalah 0–255. Nilai `0` mematikan cahaya panel dan
+`255` adalah kecerahan maksimum. Perubahan diterapkan tanpa restart.
+
+Jika waktu sekarang berada dalam jadwal redup yang aktif, perubahan
+brightness normal disimpan tetapi panel tetap memakai
+`dimBrightness` sampai jadwal redup berakhir.
+
+### `POST /api/panel/brightness-schedule`
+
+Mengatur jadwal redup berdasarkan waktu RTC.
+
+```json
+{
+  "enabled": true,
+  "startTime": "22:00",
+  "endTime": "04:00",
+  "dimBrightness": 50
+}
+```
+
+- `enabled`: mengaktifkan atau mematikan jadwal.
+- `startTime`: awal redup dalam format `HH:MM`.
+- `endTime`: akhir redup dalam format `HH:MM`.
+- `dimBrightness`: kecerahan selama jadwal, 0–255.
+
+Payload dapat dikirim parsial. Jadwal dapat melewati tengah malam;
+contoh `22:00`–`04:00` aktif mulai pukul 22:00 dan berakhir tepat
+pukul 04:00 hari berikutnya. `startTime` dan `endTime` tidak boleh
+sama. Perubahan diterapkan tanpa restart.
 
 ### `POST /api/relay/config`
 

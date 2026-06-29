@@ -10,7 +10,6 @@ namespace {
 
 const uint32_t SLIDE_ANIMATION_MS = 20;
 const uint32_t COUNTDOWN_HOLD_MS = 500;
-const uint32_t RUNNING_SCROLL_MS = 65;
 const uint8_t MESSAGE_REPEAT_TARGET = 2;
 const int SLIDE_STEP = 2;
 const int COUNTDOWN_CHAR_SPACING = 2;
@@ -29,7 +28,8 @@ struct PrayerTarget {
 
 Layout5PrayerCountdown::Layout5PrayerCountdown(
   DMD &display,
-  const PrayerSchedule &initialSchedule
+  const PrayerSchedule &initialSchedule,
+  uint16_t speedMs
 )
   : dmd(display),
     schedule(initialSchedule),
@@ -43,6 +43,7 @@ Layout5PrayerCountdown::Layout5PrayerCountdown(
     lastAnimationAt(0),
     holdStartedAt(0),
     lastScrollAt(0),
+    runningScrollMs(speedMs),
     prayerName(""),
     runningMessage("")
 {
@@ -151,6 +152,11 @@ void Layout5PrayerCountdown::setPrayerSchedule(
   lastScrollAt = now;
 }
 
+void Layout5PrayerCountdown::setRunningSpeed(uint16_t speedMs)
+{
+  runningScrollMs = speedMs;
+}
+
 bool Layout5PrayerCountdown::selectNextPrayer(
   const ClockState &clock
 )
@@ -248,7 +254,7 @@ void Layout5PrayerCountdown::updateSlideAnimation()
 void Layout5PrayerCountdown::updateRunningMessage()
 {
   const uint32_t now = millis();
-  if (now - lastScrollAt < RUNNING_SCROLL_MS) {
+  if (now - lastScrollAt < runningScrollMs) {
     return;
   }
   lastScrollAt = now;

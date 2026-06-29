@@ -7,6 +7,7 @@
 #include "storage.h"
 #include "services/prayer_times/prayer_times_service.h"
 #include "services/panel_messages/panel_messages_service.h"
+#include "services/panel_config/panel_config_service.h"
 #include "services/wifi_config/wifi_config_service.h"
 #include "services/relay/relay_service.h"
 #include "datetime/date_and_time.h"
@@ -50,18 +51,23 @@ void handlePanelLayoutMessagePostJson(
   if (layoutNumber == 1) {
     data["bottom"] = panelMessages.layout1Bottom;
     data["repeatCount"] = panelMessages.layout1RepeatCount;
+    data["speedMs"] = panelMessages.layout1SpeedMs;
   } else if (layoutNumber == 2) {
     data["running"] = panelMessages.layout2Running;
+    data["speedMs"] = panelMessages.layout2SpeedMs;
   } else if (layoutNumber == 3) {
     JsonArray slides = data["slides"].to<JsonArray>();
     for (uint8_t i = 0; i < panelMessages.layout3SlideCount; i++) {
       slides.add(panelMessages.layout3Slides[i]);
     }
-  } else {
+  } else if (layoutNumber == 4) {
     data["running"] = panelMessages.layout4Running;
     data["showPasaran"] = panelMessages.layout4ShowPasaran;
     data["showHijriDate"] = panelMessages.layout4ShowHijriDate;
     data["repeatCount"] = panelMessages.layout4RepeatCount;
+    data["speedMs"] = panelMessages.layout4SpeedMs;
+  } else {
+    data["speedMs"] = panelMessages.layout5SpeedMs;
   }
 
   sendJsonDocument(request, 200, response);
@@ -169,6 +175,13 @@ void handleLayout4MessagePostJson(
   handlePanelLayoutMessagePostJson(request, json, 4);
 }
 
+void handleLayout5MessagePostJson(
+  AsyncWebServerRequest *request,
+  JsonVariant &json
+) {
+  handlePanelLayoutMessagePostJson(request, json, 5);
+}
+
 void handleLayout1PrayerDisplayPostJson(
   AsyncWebServerRequest *request,
   JsonVariant &json
@@ -229,6 +242,75 @@ void handleWiFiConfigPostJson(
   response["wifiConfig"]["ssid"] = config.ssid;
   response["wifiConfig"]["passwordUpdated"] = passwordUpdated;
   response["restartRequired"] = true;
+  sendJsonDocument(request, 200, response);
+}
+
+void handlePanelBrightnessPostJson(
+  AsyncWebServerRequest *request,
+  JsonVariant &json
+) {
+  PanelConfig config;
+  String message;
+  if (!updatePanelConfig(
+        json.as<JsonVariantConst>(),
+        config,
+        message
+      )) {
+    sendJsonResponse(request, 400, message.c_str());
+    return;
+  }
+
+  if (!queuePanelConfigUpdate(config)) {
+    sendJsonResponse(
+      request,
+      500,
+      "Kecerahan tersimpan tetapi gagal diterapkan ke panel"
+    );
+    return;
+  }
+
+  JsonDocument response;
+  response["success"] = true;
+  response["message"] = message;
+  response["panelConfig"]["brightness"] = config.brightness;
+  sendJsonDocument(request, 200, response);
+}
+
+void handlePanelBrightnessSchedulePostJson(
+  AsyncWebServerRequest *request,
+  JsonVariant &json
+) {
+  PanelConfig config;
+  String message;
+  if (!updatePanelBrightnessSchedule(
+        json.as<JsonVariantConst>(),
+        config,
+        message
+      )) {
+    sendJsonResponse(request, 400, message.c_str());
+    return;
+  }
+
+  if (!queuePanelConfigUpdate(config)) {
+    sendJsonResponse(
+      request,
+      500,
+      "Jadwal tersimpan tetapi gagal diterapkan ke panel"
+    );
+    return;
+  }
+
+  JsonDocument response;
+  response["success"] = true;
+  response["message"] = message;
+  JsonObject schedule =
+    response["dimSchedule"].to<JsonObject>();
+  schedule["enabled"] = config.dimEnabled;
+  schedule["startTime"] =
+    formatPanelScheduleTime(config.dimStartMinutes);
+  schedule["endTime"] =
+    formatPanelScheduleTime(config.dimEndMinutes);
+  schedule["dimBrightness"] = config.dimBrightness;
   sendJsonDocument(request, 200, response);
 }
 

@@ -10,6 +10,7 @@
 #include "datetime/hijriah.h"
 #include "datetime/pasaran.h"
 #include "services/panel_messages/panel_messages_service.h"
+#include "services/panel_config/panel_config_service.h"
 #include "services/relay/relay_service.h"
 
 unsigned long previousMillis;
@@ -74,6 +75,7 @@ void cetakWaktu() {
     Time now = timeNow();
     Date today = dayNow();
     setPanelClock(now.hour, now.minute, now.second);
+    updatePanelBrightness(now);
     relayLoop(now, today);
 
     Serial.printf("Current time: %02d:%02d:%02d\n", now.hour, now.minute, now.second);
@@ -129,6 +131,11 @@ void setup() {
     return;
   }
 
+  if (!ensurePanelConfig()) {
+    Serial.println("Konfigurasi panel gagal disiapkan");
+    return;
+  }
+
   if (!ensureRelayConfig()) {
     Serial.println("Konfigurasi relay gagal disiapkan");
     return;
@@ -137,6 +144,11 @@ void setup() {
   PanelMessages panelMessages;
   if (!loadPanelMessages(panelMessages)) {
     Serial.println("Konfigurasi panelMessages gagal dibaca");
+    return;
+  }
+  PanelConfig panelConfig;
+  if (!loadPanelConfig(panelConfig)) {
+    Serial.println("Konfigurasi panel gagal dibaca");
     return;
   }
 
@@ -156,8 +168,13 @@ void setup() {
   relayLoop(now, today);
 
   connectToWiFi();
+  setupPanelInit(
+    now,
+    schedule,
+    panelMessages,
+    panelConfig
+  );
   setupServer();
-  setupPanelInit(now, schedule, panelMessages);
 }
 
 void loop() {

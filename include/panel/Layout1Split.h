@@ -6,7 +6,12 @@
 
 class Layout1Split : public PanelLayout {
   public:
-    Layout1Split(DMD &display, const String &bottomMessage, uint8_t repeatTarget = 3);
+    Layout1Split(
+      DMD &display,
+      const String &bottomMessage,
+      uint8_t repeatTarget = 3,
+      uint16_t speedMs = 65
+    );
 
     void begin() override;
     void update(const ClockState &clock) override;
@@ -18,7 +23,11 @@ class Layout1Split : public PanelLayout {
       bool showSunrise,
       bool showDhuha
     );
-    void setMessage(const String &message, uint8_t repeatTarget);
+    void setMessage(
+      const String &message,
+      uint8_t repeatTarget,
+      uint16_t speedMs
+    );
 
   private:
     static const uint8_t MAX_PRAYER_MESSAGES = 8;
@@ -43,6 +52,7 @@ class Layout1Split : public PanelLayout {
     uint32_t lastTopScrollAt;
     uint32_t lastTopHoldAt;
     uint32_t lastBottomScrollAt;
+    uint16_t bottomScrollMs;
     bool finished;
     String bottomMessage;
     PrayerSchedule currentSchedule;

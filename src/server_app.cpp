@@ -72,6 +72,14 @@ void setupServer() {
   layout4MessageHandler->setMethod(HTTP_POST);
   server.addHandler(layout4MessageHandler);
 
+  AsyncCallbackJsonWebHandler *layout5MessageHandler =
+    new AsyncCallbackJsonWebHandler(
+      "/api/messages/layout5",
+      handleLayout5MessagePostJson
+    );
+  layout5MessageHandler->setMethod(HTTP_POST);
+  server.addHandler(layout5MessageHandler);
+
   AsyncCallbackJsonWebHandler *layout1PrayerDisplayHandler =
     new AsyncCallbackJsonWebHandler(
       "/api/layout1/prayer-times",
@@ -87,6 +95,22 @@ void setupServer() {
     );
   wifiConfigHandler->setMethod(HTTP_POST);
   server.addHandler(wifiConfigHandler);
+
+  AsyncCallbackJsonWebHandler *panelBrightnessHandler =
+    new AsyncCallbackJsonWebHandler(
+      "/api/panel/brightness",
+      handlePanelBrightnessPostJson
+    );
+  panelBrightnessHandler->setMethod(HTTP_POST);
+  server.addHandler(panelBrightnessHandler);
+
+  AsyncCallbackJsonWebHandler *panelBrightnessScheduleHandler =
+    new AsyncCallbackJsonWebHandler(
+      "/api/panel/brightness-schedule",
+      handlePanelBrightnessSchedulePostJson
+    );
+  panelBrightnessScheduleHandler->setMethod(HTTP_POST);
+  server.addHandler(panelBrightnessScheduleHandler);
 
   AsyncCallbackJsonWebHandler *relayConfigHandler =
     new AsyncCallbackJsonWebHandler(

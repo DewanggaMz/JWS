@@ -9,7 +9,8 @@ class Layout5PrayerCountdown : public PanelLayout {
   public:
     Layout5PrayerCountdown(
       DMD &display,
-      const PrayerSchedule &schedule
+      const PrayerSchedule &schedule,
+      uint16_t speedMs = 65
     );
 
     void begin() override;
@@ -17,6 +18,7 @@ class Layout5PrayerCountdown : public PanelLayout {
     void render(const ClockState &clock) override;
     bool isFinished() const override;
     void setPrayerSchedule(const PrayerSchedule &schedule);
+    void setRunningSpeed(uint16_t speedMs);
 
   private:
     enum AnimationState {
@@ -37,6 +39,7 @@ class Layout5PrayerCountdown : public PanelLayout {
     uint32_t lastAnimationAt;
     uint32_t holdStartedAt;
     uint32_t lastScrollAt;
+    uint16_t runningScrollMs;
     String prayerName;
     String runningMessage;
     char countdownText[12];
