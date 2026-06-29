@@ -25,24 +25,8 @@ void setupServer() {
 
 
   // server.serveStatic("/", LittleFS, "/").setDefaultFile("index.html");
-  server.on("/dummy", HTTP_GET, handleHelloWorldGet);
   server.on("/konfigurasi_prayer", HTTP_GET, handlePrayerConfigGet);
   server.on("/database", HTTP_GET, handleDatabaseGet);
-
-  AsyncCallbackJsonWebHandler *databaseHandler =
-    new AsyncCallbackJsonWebHandler("/database", handleDatabasePostJson);
-  databaseHandler->setMethod(HTTP_POST);
-  server.addHandler(databaseHandler);
-
-  server.addHandler(new AsyncCallbackJsonWebHandler("/api/helloworld", [](AsyncWebServerRequest *request, JsonVariant &json) {
-    // send response helloworld
-    handleHelloWorldPostJson(request, json);
-  }));
-
-  AsyncCallbackJsonWebHandler *helloWorld =
-    new AsyncCallbackJsonWebHandler("/hello", handleHelloWorldPostJson);
-  helloWorld->setMethod(HTTP_POST);
-  server.addHandler(helloWorld);
 
 
   AsyncCallbackJsonWebHandler *prayerConfigHandler =
@@ -120,8 +104,6 @@ void setupServer() {
   relayPrayerStatesHandler->setMethod(HTTP_POST);
   server.addHandler(relayPrayerStatesHandler);
 
-
-  // server.onNotFound(handleNotFound);
 
   server.serveStatic("/", LittleFS, "/").setDefaultFile("index.html");
   

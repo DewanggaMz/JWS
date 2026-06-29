@@ -80,13 +80,6 @@ void handleNotFound(AsyncWebServerRequest *request) {
   sendJsonResponse(request, 404, "Endpoint tidak ditemukan");
 }
 
-void handleHelloWorldGet(AsyncWebServerRequest *request) {
-  JsonDocument response;
-  response["text"] = "hello world";
-
-  sendJsonDocument(request, 200, response);
-}
-
 void handlePrayerConfigGet(AsyncWebServerRequest *request) {
   JsonDocument config;
   if (!loadPrayerTimesConfig(config)) {
@@ -109,33 +102,6 @@ void handleDatabaseGet(AsyncWebServerRequest *request) {
   }
 
   sendJsonDocument(request, 200, database);
-}
-
-void handleDatabasePostJson(AsyncWebServerRequest *request, JsonVariant &json) {
-  if (!json.is<JsonObject>() && !json.is<JsonArray>()) {
-    sendJsonResponse(request, 400, "JSON harus berupa object atau array");
-    return;
-  }
-
-  JsonDocument document;
-  document.set(json);
-
-  if (!saveJsonToDatabase(document)) {
-    sendJsonResponse(request, 500, "Gagal menyimpan data ke LittleFS");
-    return;
-  }
-
-  sendJsonResponse(request, 200, "Data berhasil disimpan ke database.json");
-}
-
-void handleHelloWorldPostJson(AsyncWebServerRequest *request, JsonVariant &json) {
-  Serial.println("handleHelloWorldPostJson");
-  JsonDocument response;
-  response["success"] = true;
-  response["message"] = "hello world";
-  response["payload"].set(json.as<JsonVariantConst>());
-
-  sendJsonDocument(request, 200, response);
 }
 
 
