@@ -27,6 +27,7 @@ void setupServer() {
   // server.serveStatic("/", LittleFS, "/").setDefaultFile("index.html");
   server.on("/dummy", HTTP_GET, handleHelloWorldGet);
   server.on("/konfigurasi_prayer", HTTP_GET, handlePrayerConfigGet);
+  server.on("/database", HTTP_GET, handleDatabaseGet);
 
   AsyncCallbackJsonWebHandler *databaseHandler =
     new AsyncCallbackJsonWebHandler("/database", handleDatabasePostJson);
@@ -86,6 +87,14 @@ void setupServer() {
     );
   layout4MessageHandler->setMethod(HTTP_POST);
   server.addHandler(layout4MessageHandler);
+
+  AsyncCallbackJsonWebHandler *layout1PrayerDisplayHandler =
+    new AsyncCallbackJsonWebHandler(
+      "/api/layout1/prayer-times",
+      handleLayout1PrayerDisplayPostJson
+    );
+  layout1PrayerDisplayHandler->setMethod(HTTP_POST);
+  server.addHandler(layout1PrayerDisplayHandler);
 
   AsyncCallbackJsonWebHandler *wifiConfigHandler =
     new AsyncCallbackJsonWebHandler(

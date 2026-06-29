@@ -47,6 +47,11 @@ namespace{
         messages.layout1Bottom,
         messages.layout1RepeatCount
       );
+      layout1->setPrayerDisplayConfig(
+        messages.layout1ShowImsak,
+        messages.layout1ShowSunrise,
+        messages.layout1ShowDhuha
+      );
     }
 
     if (layout2 != nullptr) {
@@ -119,6 +124,11 @@ void setupPanelInit(
     messages.layout4HijriCorrection
   );
 
+  layout1->setPrayerDisplayConfig(
+    messages.layout1ShowImsak,
+    messages.layout1ShowSunrise,
+    messages.layout1ShowDhuha
+  );
   layout1->setPrayerSchedule(schedule);
 
   panelAnimations.addLayout(*layout1);

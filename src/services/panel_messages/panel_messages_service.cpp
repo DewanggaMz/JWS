@@ -9,6 +9,9 @@ namespace {
 
 const char DEFAULT_LAYOUT1_BOTTOM[] = "MASJID BAITUROHMAH-GUMUKMOJO      ";
 const uint8_t DEFAULT_LAYOUT1_REPEAT_COUNT = 3;
+const bool DEFAULT_LAYOUT1_SHOW_IMSAK = true;
+const bool DEFAULT_LAYOUT1_SHOW_SUNRISE = true;
+const bool DEFAULT_LAYOUT1_SHOW_DHUHA = true;
 const char DEFAULT_LAYOUT2_RUNNING[] = "LAYOUT 2  -  INFORMASI BERJALAN DI 3 PANEL P10      ";
 const char DEFAULT_LAYOUT4_RUNNING[] =
     "JAGA KEBERSIHAN DAN KEKHUSYUKAN IBADAH      ";
@@ -110,6 +113,9 @@ void setDefaultPanelMessages(PanelMessages &messages)
 {
     messages.layout1Bottom = DEFAULT_LAYOUT1_BOTTOM;
     messages.layout1RepeatCount = DEFAULT_LAYOUT1_REPEAT_COUNT;
+    messages.layout1ShowImsak = DEFAULT_LAYOUT1_SHOW_IMSAK;
+    messages.layout1ShowSunrise = DEFAULT_LAYOUT1_SHOW_SUNRISE;
+    messages.layout1ShowDhuha = DEFAULT_LAYOUT1_SHOW_DHUHA;
     messages.layout2Running = DEFAULT_LAYOUT2_RUNNING;
     messages.layout3SlideCount = DEFAULT_LAYOUT3_SLIDE_COUNT;
     for (uint8_t i = 0; i < DEFAULT_LAYOUT3_SLIDE_COUNT; i++) {
@@ -152,6 +158,25 @@ bool ensurePanelMessages()
         layout1,
         "repeatCount",
         DEFAULT_LAYOUT1_REPEAT_COUNT
+    );
+    JsonObject layout1PrayerDisplay =
+        layout1["prayerDisplay"].is<JsonObject>()
+          ? layout1["prayerDisplay"].as<JsonObject>()
+          : layout1["prayerDisplay"].to<JsonObject>();
+    changed |= setBoolIfMissing(
+        layout1PrayerDisplay,
+        "showImsak",
+        DEFAULT_LAYOUT1_SHOW_IMSAK
+    );
+    changed |= setBoolIfMissing(
+        layout1PrayerDisplay,
+        "showSunrise",
+        DEFAULT_LAYOUT1_SHOW_SUNRISE
+    );
+    changed |= setBoolIfMissing(
+        layout1PrayerDisplay,
+        "showDhuha",
+        DEFAULT_LAYOUT1_SHOW_DHUHA
     );
     changed |= setStringIfMissing(layout2, "running", DEFAULT_LAYOUT2_RUNNING);
     changed |= setBoolIfMissing(
@@ -208,6 +233,20 @@ bool loadPanelMessages(PanelMessages &messages)
         if (repeatCount > 0 && repeatCount <= 255) {
             messages.layout1RepeatCount = static_cast<uint8_t>(repeatCount);
         }
+    }
+    JsonObjectConst layout1PrayerDisplay =
+        panelMessages["layout1"]["prayerDisplay"].as<JsonObjectConst>();
+    if (layout1PrayerDisplay["showImsak"].is<bool>()) {
+        messages.layout1ShowImsak =
+            layout1PrayerDisplay["showImsak"].as<bool>();
+    }
+    if (layout1PrayerDisplay["showSunrise"].is<bool>()) {
+        messages.layout1ShowSunrise =
+            layout1PrayerDisplay["showSunrise"].as<bool>();
+    }
+    if (layout1PrayerDisplay["showDhuha"].is<bool>()) {
+        messages.layout1ShowDhuha =
+            layout1PrayerDisplay["showDhuha"].as<bool>();
     }
     copyNonEmptyString(panelMessages["layout2"]["running"], messages.layout2Running);
     copyNonEmptyString(panelMessages["layout4"]["running"], messages.layout4Running);
@@ -392,5 +431,75 @@ bool updatePanelLayoutMessages(
     }
 
     message = "Message layout berhasil diperbarui";
+    return true;
+}
+
+bool updateLayout1PrayerDisplay(
+    JsonVariantConst payload,
+    PanelMessages &messages,
+    String &message
+)
+{
+    if (!payload.is<JsonObjectConst>()) {
+        message = "Payload konfigurasi jadwal Layout 1 harus berupa object";
+        return false;
+    }
+
+    JsonObjectConst input = payload.as<JsonObjectConst>();
+    const bool hasShowImsak = !input["showImsak"].isUnbound();
+    const bool hasShowSunrise = !input["showSunrise"].isUnbound();
+    const bool hasShowDhuha = !input["showDhuha"].isUnbound();
+    if (!hasShowImsak && !hasShowSunrise && !hasShowDhuha) {
+        message =
+            "Isi minimal salah satu field: showImsak, showSunrise, atau showDhuha";
+        return false;
+    }
+
+    if (hasShowImsak && !input["showImsak"].is<bool>()) {
+        message = "Field showImsak harus berupa boolean";
+        return false;
+    }
+    if (hasShowSunrise && !input["showSunrise"].is<bool>()) {
+        message = "Field showSunrise harus berupa boolean";
+        return false;
+    }
+    if (hasShowDhuha && !input["showDhuha"].is<bool>()) {
+        message = "Field showDhuha harus berupa boolean";
+        return false;
+    }
+
+    JsonDocument database;
+    loadDatabase(database);
+    JsonObject panelMessages = database["panelMessages"].is<JsonObject>()
+                                 ? database["panelMessages"].as<JsonObject>()
+                                 : database["panelMessages"].to<JsonObject>();
+    JsonObject layout1 = panelMessages["layout1"].is<JsonObject>()
+                           ? panelMessages["layout1"].as<JsonObject>()
+                           : panelMessages["layout1"].to<JsonObject>();
+    JsonObject prayerDisplay = layout1["prayerDisplay"].is<JsonObject>()
+                                 ? layout1["prayerDisplay"].as<JsonObject>()
+                                 : layout1["prayerDisplay"].to<JsonObject>();
+
+    if (hasShowImsak) {
+        prayerDisplay["showImsak"] = input["showImsak"].as<bool>();
+    }
+    if (hasShowSunrise) {
+        prayerDisplay["showSunrise"] = input["showSunrise"].as<bool>();
+    }
+    if (hasShowDhuha) {
+        prayerDisplay["showDhuha"] = input["showDhuha"].as<bool>();
+    }
+
+    if (!saveDatabase(database)) {
+        message = "Gagal menyimpan konfigurasi jadwal Layout 1";
+        return false;
+    }
+
+    if (!loadPanelMessages(messages)) {
+        message = "Konfigurasi tersimpan tetapi gagal dimuat ulang";
+        return false;
+    }
+
+    message = "Konfigurasi jadwal Layout 1 berhasil diperbarui";
     return true;
 }

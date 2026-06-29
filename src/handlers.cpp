@@ -2,6 +2,7 @@
 
 #include <ArduinoJson.h>
 
+#include "config.h"
 #include "utils/json_utils.h"
 #include "storage.h"
 #include "services/prayer_times/prayer_times_service.h"
@@ -99,6 +100,16 @@ void handlePrayerConfigGet(AsyncWebServerRequest *request) {
   sendJsonDocument(request, 200, response);
 }
 
+void handleDatabaseGet(AsyncWebServerRequest *request) {
+  JsonDocument database;
+  if (!readJsonFile(DATABASE_PATH, database)) {
+    sendJsonResponse(request, 500, "Gagal membaca database.json");
+    return;
+  }
+
+  sendJsonDocument(request, 200, database);
+}
+
 void handleDatabasePostJson(AsyncWebServerRequest *request, JsonVariant &json) {
   if (!json.is<JsonObject>() && !json.is<JsonArray>()) {
     sendJsonResponse(request, 400, "JSON harus berupa object atau array");
@@ -187,6 +198,42 @@ void handleLayout4MessagePostJson(
   JsonVariant &json
 ) {
   handlePanelLayoutMessagePostJson(request, json, 4);
+}
+
+void handleLayout1PrayerDisplayPostJson(
+  AsyncWebServerRequest *request,
+  JsonVariant &json
+) {
+  PanelMessages panelMessages;
+  String message;
+  if (!updateLayout1PrayerDisplay(
+        json.as<JsonVariantConst>(),
+        panelMessages,
+        message
+      )) {
+    sendJsonResponse(request, 400, message.c_str());
+    return;
+  }
+
+  if (!queuePanelMessagesUpdate(panelMessages)) {
+    sendJsonResponse(
+      request,
+      500,
+      "Konfigurasi tersimpan tetapi gagal diterapkan ke panel"
+    );
+    return;
+  }
+
+  JsonDocument response;
+  response["success"] = true;
+  response["message"] = message;
+  response["prayerDisplay"]["showImsak"] =
+    panelMessages.layout1ShowImsak;
+  response["prayerDisplay"]["showSunrise"] =
+    panelMessages.layout1ShowSunrise;
+  response["prayerDisplay"]["showDhuha"] =
+    panelMessages.layout1ShowDhuha;
+  sendJsonDocument(request, 200, response);
 }
 
 void handleWiFiConfigPostJson(

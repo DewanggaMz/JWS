@@ -7,6 +7,9 @@ struct PanelMessages {
 
     String layout1Bottom;
     uint8_t layout1RepeatCount;
+    bool layout1ShowImsak;
+    bool layout1ShowSunrise;
+    bool layout1ShowDhuha;
     String layout2Running;
     String layout3Slides[MAX_LAYOUT3_SLIDES];
     uint8_t layout3SlideCount;

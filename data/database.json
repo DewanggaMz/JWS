@@ -36,7 +36,12 @@
   "panelMessages": {
     "layout1": {
       "bottom": "MASJID BAITUROHMAH-GUMUKMOJO      ",
-      "repeatCount": 3
+      "repeatCount": 3,
+      "prayerDisplay": {
+        "showImsak": true,
+        "showSunrise": true,
+        "showDhuha": true
+      }
     },
     "layout2": {
       "running": "LAYOUT 2  -  INFORMASI BERJALAN DI 3 PANEL P10      "

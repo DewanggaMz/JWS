@@ -13,3 +13,8 @@ bool updatePanelLayoutMessages(
   PanelMessages &messages,
   String &message
 );
+bool updateLayout1PrayerDisplay(
+  JsonVariantConst payload,
+  PanelMessages &messages,
+  String &message
+);

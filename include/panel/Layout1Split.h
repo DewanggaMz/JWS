@@ -13,9 +13,16 @@ class Layout1Split : public PanelLayout {
     void render(const ClockState &clock) override;
     bool isFinished() const override;
     void setPrayerSchedule(const PrayerSchedule &schedule);
+    void setPrayerDisplayConfig(
+      bool showImsak,
+      bool showSunrise,
+      bool showDhuha
+    );
     void setMessage(const String &message, uint8_t repeatTarget);
 
   private:
+    static const uint8_t MAX_PRAYER_MESSAGES = 8;
+
     enum TopAnimState {
         TOP_ANIM_IN,
         TOP_ANIM_PRE_SCROLL_HOLD,
@@ -38,10 +45,16 @@ class Layout1Split : public PanelLayout {
     uint32_t lastBottomScrollAt;
     bool finished;
     String bottomMessage;
-    char prayerMessages[5][16];
+    PrayerSchedule currentSchedule;
+    bool showImsak;
+    bool showSunrise;
+    bool showDhuha;
+    uint8_t prayerMessageCount;
+    char prayerMessages[MAX_PRAYER_MESSAGES][16];
 
     const char *currentTopMessage() const;
     void setPrayerMessage(uint8_t index, const char *label, const PrayerScheduleTime &time);
+    void rebuildPrayerMessages();
     void resetTopMessagePosition();
     bool topTextNeedsScroll();
     void updateTopAnimation();

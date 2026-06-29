@@ -22,8 +22,6 @@ const uint32_t TOP_HOLD_MS = 1800;
 const uint32_t BOTTOM_SCROLL_MS = 65;
 const int TOP_CHAR_SPACING = 1;
 const int BOTTOM_CHAR_SPACING = 3;
-
-const uint8_t topMessageCount = 5;
 }
 
 Layout1Split::Layout1Split(DMD &display, const String &bottomMessage, uint8_t repeatTarget)
@@ -40,7 +38,12 @@ Layout1Split::Layout1Split(DMD &display, const String &bottomMessage, uint8_t re
       lastTopHoldAt(0),
       lastBottomScrollAt(0),
       finished(false),
-      bottomMessage(bottomMessage)
+      bottomMessage(bottomMessage),
+      currentSchedule{},
+      showImsak(false),
+      showSunrise(false),
+      showDhuha(false),
+      prayerMessageCount(0)
 {
     PrayerSchedule schedule{};
     schedule.subuh = {5, 0, true};
@@ -175,7 +178,7 @@ void Layout1Split::updateTopAnimation()
         topTextY--;
         if (topTextY <= -SYSTEM5x7_HEIGHT) {
             topMessageIndex++;
-            if (topMessageIndex >= topMessageCount) {
+            if (topMessageIndex >= prayerMessageCount) {
                 repeatCount++;
                 if (repeatCount >= repeatTarget) {
                     finished = true;
@@ -231,23 +234,42 @@ void Layout1Split::drawRightPanel()
 
 void Layout1Split::setPrayerSchedule(const PrayerSchedule &schedule)
 {
-    setPrayerMessage(0, "SUBUH", schedule.subuh);
-    setPrayerMessage(1, "DZUHUR", schedule.dzuhur);
-    setPrayerMessage(2, "ASHAR", schedule.ashar);
-    setPrayerMessage(3, "MAGHRIB", schedule.maghrib);
-    setPrayerMessage(4, "ISYA", schedule.isya);
+    currentSchedule = schedule;
+    rebuildPrayerMessages();
+    resetTopMessagePosition();
+}
 
+void Layout1Split::setPrayerDisplayConfig(
+    bool newShowImsak,
+    bool newShowSunrise,
+    bool newShowDhuha
+)
+{
+    showImsak = newShowImsak;
+    showSunrise = newShowSunrise;
+    showDhuha = newShowDhuha;
+    rebuildPrayerMessages();
+
+    topMessageIndex = 0;
+    topState = TOP_ANIM_IN;
+    topTextY = -SYSTEM5x7_HEIGHT;
+    lastTopAnimAt = millis();
     resetTopMessagePosition();
 }
 
 const char *Layout1Split::currentTopMessage() const
 {
+    if (prayerMessageCount == 0 ||
+        topMessageIndex >= prayerMessageCount) {
+        return "";
+    }
+
     return prayerMessages[topMessageIndex];
 }
 
 void Layout1Split::setPrayerMessage(uint8_t index, const char *label, const PrayerScheduleTime &time)
 {
-    if (index >= topMessageCount) {
+    if (index >= MAX_PRAYER_MESSAGES) {
         return;
     }
 
@@ -255,5 +277,65 @@ void Layout1Split::setPrayerMessage(uint8_t index, const char *label, const Pray
         snprintf(prayerMessages[index], sizeof(prayerMessages[index]), "%s %02u:%02u ", label, time.hour, time.minute);
     } else {
         snprintf(prayerMessages[index], sizeof(prayerMessages[index]), "%s --:--", label);
+    }
+}
+
+void Layout1Split::rebuildPrayerMessages()
+{
+    prayerMessageCount = 0;
+
+    if (showImsak) {
+        setPrayerMessage(
+            prayerMessageCount++,
+            "IMSAK",
+            currentSchedule.imsak
+        );
+    }
+
+    setPrayerMessage(
+        prayerMessageCount++,
+        "SUBUH",
+        currentSchedule.subuh
+    );
+
+    if (showSunrise) {
+        setPrayerMessage(
+            prayerMessageCount++,
+            "TERBIT",
+            currentSchedule.terbit
+        );
+    }
+
+    if (showDhuha) {
+        setPrayerMessage(
+            prayerMessageCount++,
+            "DHUHA",
+            currentSchedule.duha
+        );
+    }
+
+    setPrayerMessage(
+        prayerMessageCount++,
+        "DZUHUR",
+        currentSchedule.dzuhur
+    );
+    setPrayerMessage(
+        prayerMessageCount++,
+        "ASHAR",
+        currentSchedule.ashar
+    );
+    setPrayerMessage(
+        prayerMessageCount++,
+        "MAGHRIB",
+        currentSchedule.maghrib
+    );
+    setPrayerMessage(
+        prayerMessageCount++,
+        "ISYA",
+        currentSchedule.isya
+    );
+
+    if (topMessageIndex >= prayerMessageCount) {
+        topMessageIndex = 0;
     }
 }
