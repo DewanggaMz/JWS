@@ -305,8 +305,15 @@ void setupRelayPins()
 
 bool ensureRelayConfig()
 {
+  DatabaseGuard guard;
+  if (!guard) {
+    return false;
+  }
+
   JsonDocument database;
-  loadDatabase(database);
+  if (!loadDatabase(database)) {
+    return false;
+  }
 
   bool changed = false;
   if (!database["relayConfig"].is<JsonObject>()) {
@@ -531,6 +538,12 @@ bool updateRelayConfig(
   String &message
 )
 {
+  DatabaseGuard guard;
+  if (!guard) {
+    message = "Database sedang digunakan";
+    return false;
+  }
+
   if (!payload.is<JsonObjectConst>()) {
     message = "Payload konfigurasi relay harus berupa object";
     return false;
@@ -581,7 +594,10 @@ bool updateRelayConfig(
   }
 
   JsonDocument database;
-  loadDatabase(database);
+  if (!loadDatabase(database)) {
+    message = "Gagal membaca database";
+    return false;
+  }
   const bool configExists = database["relayConfig"].is<JsonObject>();
   JsonObject stored = configExists
                         ? database["relayConfig"].as<JsonObject>()
@@ -641,6 +657,12 @@ bool updateRelayPrayerStates(
   String &message
 )
 {
+  DatabaseGuard guard;
+  if (!guard) {
+    message = "Database sedang digunakan";
+    return false;
+  }
+
   if (!payload.is<JsonObjectConst>()) {
     message = "Payload state tartil harus berupa object";
     return false;
@@ -674,7 +696,10 @@ bool updateRelayPrayerStates(
   }
 
   JsonDocument database;
-  loadDatabase(database);
+  if (!loadDatabase(database)) {
+    message = "Gagal membaca database";
+    return false;
+  }
   if (!database["relayConfig"].is<JsonObject>()) {
     message = "Konfigurasi relay belum tersedia";
     return false;

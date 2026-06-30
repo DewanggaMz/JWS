@@ -6,7 +6,7 @@
 #include "prayer_schedule.h"
 #include "services/panel_config/panel_config_service.h"
 
-void setupPanelInit(
+bool setupPanelInit(
   const Time &time,
   const PrayerSchedule &schedule,
   const PanelMessages &messages,

@@ -1,38 +1,45 @@
 #include <Arduino.h>
 
 #include "connection.h"
-#include "server_app.h"
-#include "storage.h"
-#include "prayer_schedule.h"
-#include "services/prayer_times/prayer_times_service.h"
 #include "datetime/date_and_time.h"
 #include "panel/panelSetup.h"
-#include "datetime/hijriah.h"
-#include "datetime/pasaran.h"
-#include "services/panel_messages/panel_messages_service.h"
+#include "prayer_schedule.h"
+#include "server_app.h"
+#include "services/database/database_service.h"
 #include "services/panel_config/panel_config_service.h"
+#include "services/panel_messages/panel_messages_service.h"
+#include "services/prayer_times/prayer_times_service.h"
 #include "services/relay/relay_service.h"
-
-unsigned long previousMillis;
-unsigned long lastPrayerRefreshAttemptAt;
-uint32_t loadedPrayerScheduleDateKey;
-uint32_t lastPrayerRefreshAttemptDateKey;
+#include "services/wifi_config/wifi_config_service.h"
+#include "storage.h"
 
 namespace {
 
-uint32_t dateKey(const Date &date) {
+const uint32_t SECOND_TICK_MS = 1000;
+const uint32_t PRAYER_REFRESH_RETRY_MS = 60000;
+
+bool applicationReady = false;
+uint32_t lastSecondTickAt = 0;
+uint32_t lastPrayerRefreshAttemptAt = 0;
+uint32_t loadedPrayerScheduleDateKey = 0;
+uint32_t lastPrayerRefreshAttemptDateKey = 0;
+bool prayerRefreshPending = false;
+
+uint32_t dateKey(const Date &date)
+{
   return
     (static_cast<uint32_t>(date.year) * 10000UL) +
     (static_cast<uint32_t>(date.month) * 100UL) +
     date.day;
 }
 
-bool refreshPanelPrayerSchedule(const Date &today) {
+bool refreshPrayerSchedule(const Date &today)
+{
   const uint32_t todayKey = dateKey(today);
   lastPrayerRefreshAttemptAt = millis();
   lastPrayerRefreshAttemptDateKey = todayKey;
 
-  PrayerSchedule schedule = getPrayerTimes();
+  const PrayerSchedule schedule = getPrayerTimes();
   if (!schedule.valid) {
     Serial.println("Gagal menghitung ulang jadwal sholat");
     return false;
@@ -41,144 +48,160 @@ bool refreshPanelPrayerSchedule(const Date &today) {
   setPanelPrayerSchedule(schedule);
   setRelayPrayerSchedule(schedule);
   loadedPrayerScheduleDateKey = todayKey;
-  Serial.println("Jadwal sholat Layout 1 berhasil diperbarui");
+  Serial.println("Jadwal sholat berhasil diperbarui");
   return true;
 }
 
-void processPrayerScheduleRefreshRequest() {
-  if (!consumePrayerScheduleRefreshRequest()) {
-    return;
-  }
-
-  refreshPanelPrayerSchedule(dayNow());
-}
-
-void refreshPrayerScheduleWhenDateChanges(const Date &today) {
+void refreshPrayerScheduleWhenNeeded(const Date &today)
+{
   const uint32_t todayKey = dateKey(today);
-  if (todayKey == loadedPrayerScheduleDateKey) {
+  const bool newRequest = consumePrayerScheduleRefreshRequest();
+  if (newRequest) {
+    prayerRefreshPending = true;
+  }
+  const bool dateChanged =
+    todayKey != loadedPrayerScheduleDateKey;
+  if (!prayerRefreshPending && !dateChanged) {
     return;
   }
 
   const bool firstAttemptForDate =
     todayKey != lastPrayerRefreshAttemptDateKey;
   const bool retryDelayElapsed =
-    millis() - lastPrayerRefreshAttemptAt >= 60000UL;
-  if (firstAttemptForDate || retryDelayElapsed) {
-    refreshPanelPrayerSchedule(today);
+    millis() - lastPrayerRefreshAttemptAt >=
+    PRAYER_REFRESH_RETRY_MS;
+  if (newRequest ||
+      firstAttemptForDate ||
+      retryDelayElapsed) {
+    if (refreshPrayerSchedule(today)) {
+      prayerRefreshPending = false;
+    }
   }
 }
 
-}
-
-void cetakWaktu() {
-  if(millis() - previousMillis >= 1000) {
-    Time now = timeNow();
-    Date today = dayNow();
-    setPanelClock(now.hour, now.minute, now.second);
-    updatePanelBrightness(now);
-    relayLoop(now, today);
-
-    Serial.printf("Current time: %02d:%02d:%02d\n", now.hour, now.minute, now.second);
-    Serial.println("=====================================");
-    
-    Serial.printf("Today: %s %02d %02d %04d\n", today.dayName, today.day, today.month, today.year);
-    Serial.println("=====================================");
-    
-    refreshPrayerScheduleWhenDateChanges(today);
-    Serial.println("=====================================");
-
-    HijriDate hijri = HijriModule::getHijriDate(
-      today.year,
-      today.month,
-      today.day,
-      1
-    );
-
-    const char* hijriDayName = getHijriMonthName(hijri.month);
-
-    String hijriDate = String(hijri.day);
-    String hijriMonth = String(hijri.month);
-    String hijriYear = String(hijri.year);
-
-    Serial.printf("Hijri: %s %s %s \n",hijriDate.c_str() , hijriDayName , hijriYear.c_str());
-    Serial.println("=====================================");
-
-    String pasaran = getPasaran(today.day, today.month, today.year);
-    Serial.printf("Pasaran: %s %s\n", today.dayName, pasaran.c_str());
-    Serial.println("=====================================");
-
-    previousMillis = millis();
+void runSecondTick()
+{
+  const uint32_t nowMs = millis();
+  if (nowMs - lastSecondTickAt < SECOND_TICK_MS) {
+    return;
   }
+  lastSecondTickAt = nowMs;
+
+  DateTimeState now;
+  if (!dateTimeNow(now)) {
+    return;
+  }
+
+  setPanelClock(
+    now.time.hour,
+    now.time.minute,
+    now.time.second
+  );
+  updatePanelBrightness(now.time);
+  relayLoop(now.time, now.date);
+  refreshPrayerScheduleWhenNeeded(now.date);
 }
 
-void setup() {
-  Serial.begin(115200);
+bool preparePersistentConfiguration()
+{
+  return
+    ensurePrayerTimesConfig() &&
+    ensurePanelMessages() &&
+    ensurePanelConfig() &&
+    ensureRelayConfig() &&
+    ensureWiFiConfig();
+}
+
+bool initializeApplication()
+{
   setupRelayPins();
-  
-  initTime();
+
+  if (!initTime()) {
+    Serial.println("Inisialisasi RTC gagal");
+    return false;
+  }
   if (!initStorage()) {
-    Serial.println("LittleFS gagal dimount atau database.json gagal dibuat");
-    return;
+    Serial.println("Inisialisasi LittleFS gagal");
+    return false;
   }
-
-  if (!ensurePrayerTimesConfig()) {
-    Serial.println("Konfigurasi prayerTimes gagal disiapkan");
-    return;
+  if (!initDatabaseService()) {
+    Serial.println("Inisialisasi database mutex gagal");
+    return false;
   }
-
-  if (!ensurePanelMessages()) {
-    Serial.println("Konfigurasi panelMessages gagal disiapkan");
-    return;
-  }
-
-  if (!ensurePanelConfig()) {
-    Serial.println("Konfigurasi panel gagal disiapkan");
-    return;
-  }
-
-  if (!ensureRelayConfig()) {
-    Serial.println("Konfigurasi relay gagal disiapkan");
-    return;
+  if (!preparePersistentConfiguration()) {
+    Serial.println("Konfigurasi persisten gagal disiapkan");
+    return false;
   }
 
   PanelMessages panelMessages;
-  if (!loadPanelMessages(panelMessages)) {
-    Serial.println("Konfigurasi panelMessages gagal dibaca");
-    return;
-  }
   PanelConfig panelConfig;
-  if (!loadPanelConfig(panelConfig)) {
+  if (!loadPanelMessages(panelMessages) ||
+      !loadPanelConfig(panelConfig)) {
     Serial.println("Konfigurasi panel gagal dibaca");
-    return;
+    return false;
   }
 
+  DateTimeState now;
+  if (!dateTimeNow(now)) {
+    return false;
+  }
 
-  Time now = timeNow();
-  PrayerSchedule schedule = getPrayerTimes();
-  Date today = dayNow();
-  const uint32_t todayKey = dateKey(today);
+  const PrayerSchedule schedule = getPrayerTimes();
+  const uint32_t todayKey = dateKey(now.date);
   lastPrayerRefreshAttemptAt = millis();
   lastPrayerRefreshAttemptDateKey = todayKey;
-  loadedPrayerScheduleDateKey = schedule.valid ? todayKey : 0;
+  loadedPrayerScheduleDateKey =
+    schedule.valid ? todayKey : 0;
 
   if (!beginRelayScheduler(schedule)) {
     Serial.println("Scheduler relay gagal disiapkan");
-    return;
+    return false;
   }
-  relayLoop(now, today);
+  relayLoop(now.time, now.date);
 
-  connectToWiFi();
-  setupPanelInit(
-    now,
-    schedule,
-    panelMessages,
-    panelConfig
-  );
-  setupServer();
+  if (!setupPanelInit(
+        now.time,
+        schedule,
+        panelMessages,
+        panelConfig
+      )) {
+    Serial.println("Inisialisasi panel gagal");
+    return false;
+  }
+
+  if (connectToWiFi()) {
+    setupServer();
+  } else {
+    Serial.println(
+      "WiFi gagal, panel tetap berjalan tanpa web server"
+    );
+  }
+
+  lastSecondTickAt = millis();
+  return true;
 }
 
-void loop() {
-  processPrayerScheduleRefreshRequest();
+}
+
+void setup()
+{
+  Serial.begin(115200);
+  applicationReady = initializeApplication();
+  if (!applicationReady) {
+    setupRelayPins();
+    Serial.println(
+      "Startup gagal; output relay tetap OFF dan loop dihentikan"
+    );
+  }
+}
+
+void loop()
+{
+  if (!applicationReady) {
+    delay(100);
+    return;
+  }
+
   panelLoop();
-  cetakWaktu();
+  runSecondTick();
 }

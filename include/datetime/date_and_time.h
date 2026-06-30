@@ -20,7 +20,13 @@ struct Time {
   uint8_t second;
 };
 
-void initTime ();
+struct DateTimeState {
+  Date date;
+  Time time;
+};
+
+bool initTime();
+bool dateTimeNow(DateTimeState &state);
 Time timeNow ();
 Date dayNow ();
 bool updateDateTimeAdjustment(JsonVariantConst payload, String &message);

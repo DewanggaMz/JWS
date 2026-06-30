@@ -44,8 +44,15 @@ bool isValidPassword(const char *password)
 
 bool ensureWiFiConfig()
 {
+  DatabaseGuard guard;
+  if (!guard) {
+    return false;
+  }
+
   JsonDocument database;
-  loadDatabase(database);
+  if (!loadDatabase(database)) {
+    return false;
+  }
 
   bool changed = false;
   if (!database["wifiConfig"].is<JsonObject>()) {
@@ -111,6 +118,12 @@ bool updateWiFiConfig(
   String &message
 )
 {
+  DatabaseGuard guard;
+  if (!guard) {
+    message = "Database sedang digunakan";
+    return false;
+  }
+
   if (!payload.is<JsonObjectConst>()) {
     message = "Payload WiFi harus berupa object";
     return false;
@@ -141,7 +154,10 @@ bool updateWiFiConfig(
   }
 
   JsonDocument database;
-  loadDatabase(database);
+  if (!loadDatabase(database)) {
+    message = "Gagal membaca database";
+    return false;
+  }
   JsonObject storedConfig = database["wifiConfig"].is<JsonObject>()
                               ? database["wifiConfig"].as<JsonObject>()
                               : database["wifiConfig"].to<JsonObject>();

@@ -33,7 +33,7 @@
     "dimSchedule": {
       "enabled": true,
       "startTime": "22:00",
-      "endTime": "04:00",
+      "endTime": "03:40",
       "dimBrightness": 50
     }
   },

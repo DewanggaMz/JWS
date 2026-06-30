@@ -544,3 +544,32 @@ src/server_app.cpp            Registrasi endpoint HTTP
 src/handlers.cpp              Handler endpoint
 src/main.cpp                  Setup dan loop utama
 ```
+
+## Ketahanan dan lifecycle
+
+- Semua output relay dibuat OFF sebelum service lain diinisialisasi.
+- Jika RTC, LittleFS, database, konfigurasi, atau panel gagal
+  diinisialisasi, loop aplikasi tidak menjalankan object yang belum
+  siap dan relay dikembalikan ke kondisi OFF.
+- Kegagalan Wi-Fi tidak menghentikan panel dan scheduler relay; hanya
+  web server yang tidak dijalankan.
+- RTC dibaca sebagai satu snapshot tanggal/waktu per detik dan
+  dilindungi mutex terhadap update dari endpoint.
+- Layout panel memakai static storage dengan ownership eksplisit,
+  sehingga tidak bergantung pada alokasi heap saat runtime.
+- Update konfigurasi panel diterapkan dari loop utama melalui antrean,
+  bukan langsung dari task web server.
+
+### Keamanan database
+
+Penulisan `database.json` menggunakan urutan:
+
+1. Serialize dan validasi file `.tmp`.
+2. Pindahkan database lama menjadi `.bak`.
+3. Aktifkan file baru dengan rename.
+4. Hapus backup setelah write berhasil.
+
+Saat boot, firmware mencoba memulihkan backup jika write sebelumnya
+terputus. Akses file dilindungi mutex, dan operasi read–modify–write
+service memakai database lock agar dua request POST tidak saling
+menimpa.

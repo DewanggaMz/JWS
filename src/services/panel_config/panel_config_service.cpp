@@ -103,8 +103,15 @@ bool parsePanelConfig(
 
 bool ensurePanelConfig()
 {
+  DatabaseGuard guard;
+  if (!guard) {
+    return false;
+  }
+
   JsonDocument database;
-  loadDatabase(database);
+  if (!loadDatabase(database)) {
+    return false;
+  }
 
   bool changed = false;
   if (!database["panelConfig"].is<JsonObject>()) {
@@ -153,6 +160,12 @@ bool updatePanelConfig(
   String &message
 )
 {
+  DatabaseGuard guard;
+  if (!guard) {
+    message = "Database sedang digunakan";
+    return false;
+  }
+
   if (!payload.is<JsonObjectConst>()) {
     message = "Payload konfigurasi panel harus berupa object";
     return false;
@@ -169,7 +182,10 @@ bool updatePanelConfig(
   }
 
   JsonDocument database;
-  loadDatabase(database);
+  if (!loadDatabase(database)) {
+    message = "Gagal membaca database";
+    return false;
+  }
   JsonObject panelConfig = database["panelConfig"].is<JsonObject>()
                              ? database["panelConfig"].as<JsonObject>()
                              : database["panelConfig"].to<JsonObject>();
@@ -198,6 +214,12 @@ bool updatePanelBrightnessSchedule(
   String &message
 )
 {
+  DatabaseGuard guard;
+  if (!guard) {
+    message = "Database sedang digunakan";
+    return false;
+  }
+
   if (!payload.is<JsonObjectConst>()) {
     message = "Payload jadwal redup harus berupa object";
     return false;
@@ -235,7 +257,10 @@ bool updatePanelBrightnessSchedule(
   }
 
   JsonDocument database;
-  loadDatabase(database);
+  if (!loadDatabase(database)) {
+    message = "Gagal membaca database";
+    return false;
+  }
   JsonObject panelConfig = database["panelConfig"].is<JsonObject>()
                              ? database["panelConfig"].as<JsonObject>()
                              : database["panelConfig"].to<JsonObject>();

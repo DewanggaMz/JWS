@@ -66,12 +66,14 @@ class Layout4PrayerSchedule : public PanelLayout {
     uint8_t repeatCount;
     int hijriCorrection;
     char topText[24];
+    char dayText[24];
+    char dateText[24];
     char hijriText[40];
     String runningMessage;
 
     void nextTopMode();
     void updateTopText(const ClockState &clock);
-    void updateHijriText();
+    void updateDateCache();
     void resetAnimationCycle(uint32_t now);
     void updateTopAnimation();
     void updateBottomAnimation();

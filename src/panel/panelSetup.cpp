@@ -12,6 +12,7 @@
 #include "panel/Layout4PrayerSchedule.h"
 #include "panel/Layout5PrayerCountdown.h"
 #include "panel/PanelAnimations.h"
+#include "utils/StaticObject.h"
 
 static const uint32_t DMD_REFRESH_MS = 1;
 static const uint32_t FRAME_MS = 30;
@@ -19,6 +20,11 @@ static const uint32_t FRAME_MS = 30;
 DMD dmd(DISPLAYS_ACROSS, DISPLAYS_DOWN);
 Ticker dmdTicker;
 PanelAnimations panelAnimations(dmd);
+StaticObject<Layout1Split> layout1Storage;
+StaticObject<Layout2FullRunning> layout2Storage;
+StaticObject<Layout3SlideText> layout3Storage;
+StaticObject<Layout4PrayerSchedule> layout4Storage;
+StaticObject<Layout5PrayerCountdown> layout5Storage;
 Layout1Split *layout1 = nullptr;
 Layout2FullRunning *layout2 = nullptr;
 Layout3SlideText *layout3 = nullptr;
@@ -109,7 +115,7 @@ namespace{
   }
 }
 
-void setupPanelInit(
+bool setupPanelInit(
   const Time &time,
   const PrayerSchedule &schedule,
   const PanelMessages &messages,
@@ -118,28 +124,31 @@ void setupPanelInit(
   if (panelMessagesMutex == nullptr) {
     panelMessagesMutex = xSemaphoreCreateMutex();
   }
+  if (panelMessagesMutex == nullptr) {
+    return false;
+  }
 
   dmd.clearScreen(true);
   activePanelConfig = panelConfig;
   updatePanelBrightness(time);
 
-  layout1 = new Layout1Split(
+  layout1 = layout1Storage.create(
     dmd,
     messages.layout1Bottom,
     messages.layout1RepeatCount,
     messages.layout1SpeedMs
   );
-  layout2 = new Layout2FullRunning(
+  layout2 = layout2Storage.create(
     dmd,
     messages.layout2Running,
     messages.layout2SpeedMs
   );
-  layout3 = new Layout3SlideText(
+  layout3 = layout3Storage.create(
     dmd,
     messages.layout3Slides,
     messages.layout3SlideCount
   );
-  layout4 = new Layout4PrayerSchedule(
+  layout4 = layout4Storage.create(
     dmd,
     messages.layout4Running,
     messages.layout4ShowPasaran,
@@ -148,7 +157,7 @@ void setupPanelInit(
     messages.layout4HijriCorrection,
     messages.layout4SpeedMs
   );
-  layout5 = new Layout5PrayerCountdown(
+  layout5 = layout5Storage.create(
     dmd,
     schedule,
     messages.layout5SpeedMs
@@ -161,14 +170,18 @@ void setupPanelInit(
   );
   layout1->setPrayerSchedule(schedule);
 
-  // panelAnimations.addLayout(*layout1);
-  // panelAnimations.addLayout(*layout3);
-  panelAnimations.addLayout(*layout4);
-  panelAnimations.addLayout(*layout5);
-  // panelAnimations.addLayout(*layout2);
+  panelAnimations.addLayout(*layout1);
+  panelAnimations.addLayout(*layout3);
+  bool layoutsAdded = panelAnimations.addLayout(*layout4);
+  layoutsAdded &= panelAnimations.addLayout(*layout5);
+  panelAnimations.addLayout(*layout2);
+  if (!layoutsAdded) {
+    return false;
+  }
   panelAnimations.begin(time.hour, time.minute, time.second);
 
   startDmdRefresh();
+  return true;
 }
 
 void panelLoop () {

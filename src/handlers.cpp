@@ -112,7 +112,6 @@ void handleDatabaseGet(AsyncWebServerRequest *request) {
 
 
 void handlePrayerConfigPostJson(AsyncWebServerRequest *request, JsonVariant &json) {
-  Serial.println("handlePrayerConfigPostJson");
   String message;
   if (!updatePrayerTimesConfig(json.as<JsonVariantConst>(), message)) {
     sendJsonResponse(request, 400, message.c_str());
@@ -133,7 +132,6 @@ void handlePrayerConfigPostJson(AsyncWebServerRequest *request, JsonVariant &jso
 }
 
 void handleDateTimeAdjustmentPostJson(AsyncWebServerRequest *request, JsonVariant &json) {
-  Serial.println("handleDateTimeAdjustmentPostJson");
   String message;
   if (!updateDateTimeAdjustment(json.as<JsonVariantConst>(), message)) {
     sendJsonResponse(request, 400, message.c_str());

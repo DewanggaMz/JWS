@@ -163,8 +163,15 @@ void setDefaultPanelMessages(PanelMessages &messages)
 
 bool ensurePanelMessages()
 {
+    DatabaseGuard guard;
+    if (!guard) {
+        return false;
+    }
+
     JsonDocument database;
-    loadDatabase(database);
+    if (!loadDatabase(database)) {
+        return false;
+    }
 
     bool changed = false;
     if (!database["panelMessages"].is<JsonObject>()) {
@@ -359,6 +366,12 @@ bool updatePanelLayoutMessages(
     String &message
 )
 {
+    DatabaseGuard guard;
+    if (!guard) {
+        message = "Database sedang digunakan";
+        return false;
+    }
+
     if (!payload.is<JsonObjectConst>()) {
         message = "Payload message layout harus berupa object";
         return false;
@@ -371,7 +384,10 @@ bool updatePanelLayoutMessages(
 
     JsonObjectConst input = payload.as<JsonObjectConst>();
     JsonDocument database;
-    loadDatabase(database);
+    if (!loadDatabase(database)) {
+        message = "Gagal membaca database";
+        return false;
+    }
     JsonObject panelMessages = database["panelMessages"].is<JsonObject>()
                                  ? database["panelMessages"].as<JsonObject>()
                                  : database["panelMessages"].to<JsonObject>();
@@ -505,6 +521,12 @@ bool updateLayout1PrayerDisplay(
     String &message
 )
 {
+    DatabaseGuard guard;
+    if (!guard) {
+        message = "Database sedang digunakan";
+        return false;
+    }
+
     if (!payload.is<JsonObjectConst>()) {
         message = "Payload konfigurasi jadwal Layout 1 harus berupa object";
         return false;
@@ -534,7 +556,10 @@ bool updateLayout1PrayerDisplay(
     }
 
     JsonDocument database;
-    loadDatabase(database);
+    if (!loadDatabase(database)) {
+        message = "Gagal membaca database";
+        return false;
+    }
     JsonObject panelMessages = database["panelMessages"].is<JsonObject>()
                                  ? database["panelMessages"].as<JsonObject>()
                                  : database["panelMessages"].to<JsonObject>();

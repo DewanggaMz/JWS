@@ -126,8 +126,15 @@ void setDefaultPrayerTimesConfig(JsonObject target) {
 // ==================================================================================================
 
 bool ensurePrayerTimesConfig() {
+  DatabaseGuard guard;
+  if (!guard) {
+    return false;
+  }
+
   JsonDocument database;
-  loadDatabase(database);
+  if (!loadDatabase(database)) {
+    return false;
+  }
 
   if (database["prayerTimesConfig"].is<JsonObject>() && database["prayerTimesConfig"].size() > 0) {
     return true;
@@ -144,13 +151,17 @@ bool ensurePrayerTimesConfig() {
 
 bool loadPrayerTimesConfig(JsonDocument &config) {
   JsonDocument database;
-  loadDatabase(database);
+  if (!loadDatabase(database)) {
+    return false;
+  }
 
   if (!database["prayerTimesConfig"].is<JsonObject>()) {
     if (!ensurePrayerTimesConfig()) {
       return false;
     }
-    loadDatabase(database);
+    if (!loadDatabase(database)) {
+      return false;
+    }
   }
 
   config.clear();
@@ -162,6 +173,12 @@ bool loadPrayerTimesConfig(JsonDocument &config) {
 // ==================================================================================================
 
 bool updatePrayerTimesConfig(JsonVariantConst payload, String &message) {
+  DatabaseGuard guard;
+  if (!guard) {
+    message = "Database sedang digunakan";
+    return false;
+  }
+
   if (!payload.is<JsonObjectConst>()) {
     message = "Body JSON harus berupa object";
     return false;
@@ -171,13 +188,11 @@ bool updatePrayerTimesConfig(JsonVariantConst payload, String &message) {
                                 ? payload["prayerTimesConfig"]
                                 : payload;
 
-  // print incoming
-  String incomingJson;
-  serializeJson(incoming, incomingJson);
-  Serial.println(incomingJson);
-
   JsonDocument database;
-  loadDatabase(database);
+  if (!loadDatabase(database)) {
+    message = "Gagal membaca database";
+    return false;
+  }
 
   if (!database["prayerTimesConfig"].is<JsonObject>()) {
     JsonDocument defaultConfig;
@@ -187,12 +202,6 @@ bool updatePrayerTimesConfig(JsonVariantConst payload, String &message) {
 
 
   JsonObject prayerTimes = database["prayerTimesConfig"].as<JsonObject>();
-
-  // print prayerTimes
-  String prayerTimesJson;
-  serializeJson(prayerTimes, prayerTimesJson);
-  Serial.println("prayerTimes");
-  Serial.println(prayerTimesJson);
 
   mergeJsonObject(prayerTimes, incoming.as<JsonObjectConst>());
 
@@ -221,12 +230,6 @@ bool parsePrayerTimesConfig(JsonVariantConst source, PrayerTimesConfig &config, 
   JsonObjectConst location = source["location"];
   JsonObjectConst calculation = source["calculation"];
   JsonObjectConst adjustments = calculation["adjustments"];
-
-  // print adjustments
-  String adjustmentsJson;
-  serializeJson(adjustments, adjustmentsJson);
-  Serial.println("adjustments");
-  Serial.println(adjustmentsJson);
 
   config.latitude = location["latitude"] | -8.245230;
   config.longitude = location["longitude"] | 112.600482;

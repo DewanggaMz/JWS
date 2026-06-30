@@ -74,6 +74,8 @@ Layout4PrayerSchedule::Layout4PrayerSchedule(
       runningMessage(runningMessage)
 {
   topText[0] = '\0';
+  dayText[0] = '\0';
+  dateText[0] = '\0';
   hijriText[0] = '\0';
 }
 
@@ -86,7 +88,7 @@ void Layout4PrayerSchedule::begin()
   repeatCount = 0;
 
   const uint32_t now = millis();
-  updateHijriText();
+  updateDateCache();
   resetAnimationCycle(now);
   updateTopText(ClockState{0, false});
 }
@@ -128,7 +130,7 @@ void Layout4PrayerSchedule::setConfiguration(
   repeatTarget = newRepeatTarget == 0 ? 1 : newRepeatTarget;
   hijriCorrection = newHijriCorrection;
   bottomScrollMs = speedMs;
-  updateHijriText();
+  updateDateCache();
 }
 
 void Layout4PrayerSchedule::nextTopMode()
@@ -139,6 +141,10 @@ void Layout4PrayerSchedule::nextTopMode()
     topMode = TOP_DATE;
   } else {
     topMode = TOP_TIME;
+  }
+
+  if (topMode == TOP_DAY) {
+    updateDateCache();
   }
 
   topAnimState = TOP_ANIM_IN;
@@ -160,30 +166,48 @@ void Layout4PrayerSchedule::updateTopText(const ClockState &clock)
     return;
   }
 
-  Date today = dayNow();
   if (topMode == TOP_DAY) {
-    char dayName[8];
-    uppercaseCopy(dayName, sizeof(dayName), today.dayName);
-
-    if (!showPasaran) {
-      snprintf(topText, sizeof(topText), "%s", dayName);
-      return;
-    }
-
-    String pasaran = getPasaran(today.day, today.month, today.year);
-    char pasaranJawa[8];
-    uppercaseCopy(pasaranJawa, sizeof(pasaranJawa), pasaran.c_str());
-
-    snprintf(topText, sizeof(topText), "%s %s", dayName, pasaranJawa);
+    snprintf(topText, sizeof(topText), "%s", dayText);
     return;
   }
 
-  snprintf(topText, sizeof(topText), "%02u / %02u / %04u", today.day, today.month, today.year);
+  snprintf(topText, sizeof(topText), "%s", dateText);
 }
 
-void Layout4PrayerSchedule::updateHijriText()
+void Layout4PrayerSchedule::updateDateCache()
 {
   Date today = dayNow();
+  char dayName[8];
+  uppercaseCopy(dayName, sizeof(dayName), today.dayName);
+  if (showPasaran) {
+    const String pasaran =
+      getPasaran(today.day, today.month, today.year);
+    char pasaranJawa[8];
+    uppercaseCopy(
+      pasaranJawa,
+      sizeof(pasaranJawa),
+      pasaran.c_str()
+    );
+    snprintf(
+      dayText,
+      sizeof(dayText),
+      "%s %s",
+      dayName,
+      pasaranJawa
+    );
+  } else {
+    snprintf(dayText, sizeof(dayText), "%s", dayName);
+  }
+
+  snprintf(
+    dateText,
+    sizeof(dateText),
+    "%02u / %02u / %04u",
+    today.day,
+    today.month,
+    today.year
+  );
+
   HijriDate hijri = HijriModule::getHijriDate(
     today.year,
     today.month,
@@ -191,22 +215,19 @@ void Layout4PrayerSchedule::updateHijriText()
     hijriCorrection
   );
 
-  String hijriDate = String(hijri.day);
   char hijriDayName[20];
   uppercaseCopy(
     hijriDayName,
     sizeof(hijriDayName),
     getHijriMonthName(hijri.month)
   );
-  String hijriYear = String(hijri.year);
-
   snprintf(
     hijriText,
     sizeof(hijriText),
-    "%s %s %s H",
-    hijriDate.c_str(),
+    "%u %s %u H",
+    static_cast<unsigned int>(hijri.day),
     hijriDayName,
-    hijriYear.c_str()
+    static_cast<unsigned int>(hijri.year)
   );
 }
 
@@ -292,7 +313,7 @@ void Layout4PrayerSchedule::updateBottomAnimation()
       return;
     }
 
-    updateHijriText();
+    updateDateCache();
     resetAnimationCycle(now);
   }
 }
