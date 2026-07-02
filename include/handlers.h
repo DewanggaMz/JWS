@@ -15,8 +15,7 @@ void handleLayout3MessagePostJson(AsyncWebServerRequest *request, JsonVariant &j
 void handleLayout4MessagePostJson(AsyncWebServerRequest *request, JsonVariant &json);
 void handleLayout5MessagePostJson(AsyncWebServerRequest *request, JsonVariant &json);
 void handleLayout1PrayerDisplayPostJson(AsyncWebServerRequest *request, JsonVariant &json);
-void handlePanelBrightnessPostJson(AsyncWebServerRequest *request, JsonVariant &json);
-void handlePanelBrightnessSchedulePostJson(AsyncWebServerRequest *request, JsonVariant &json);
+void handlePanelConfigPostJson(AsyncWebServerRequest *request, JsonVariant &json);
 void handleWiFiConfigPostJson(AsyncWebServerRequest *request, JsonVariant &json);
 void handleRelayConfigPostJson(AsyncWebServerRequest *request, JsonVariant &json);
 void handleRelayPrayerStatesPostJson(AsyncWebServerRequest *request, JsonVariant &json);

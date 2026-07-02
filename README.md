@@ -14,18 +14,18 @@ Firmware jadwal waktu sholat berbasis ESP32 untuk panel P10 3×1
 - Kecerahan panel dan kecepatan running text dapat diubah secara live.
 - Koneksi Wi-Fi mode AP atau STA.
 - Web API JSON dengan CORS.
-- Lima layout panel:
+- Enam layout panel:
   - Layout 1: jam besar, jadwal sholat, dan running text.
   - Layout 2: running text layar penuh.
   - Layout 3: rangkaian slide teks.
   - Layout 4: jam, tanggal, pasaran, Hijriah, dan running text.
   - Layout 5: countdown sholat berikutnya di bagian atas dan pesan
     `MEMASUKI WAKTU <NAMA SHOLAT>` di bagian bawah. Pesan diulang dua kali.
+  - Layout 6: lafadz Muhammad di sisi kiri dan Allah di sisi kanan.
 - Scheduler relay normal dan skenario khusus Jumat.
 
-Urutan layout yang aktif saat ini adalah Layout 1 → Layout 4 →
-Layout 5 → Layout 2. Layout 3 tersedia, tetapi belum dimasukkan ke
-rotasi pada `src/panel/panelSetup.cpp`.
+Urutan layout yang aktif saat ini adalah Layout 1 → Layout 3 →
+Layout 4 → Layout 5 → Layout 6 → Layout 2.
 
 ## Hardware dan pin
 
@@ -120,6 +120,7 @@ Struktur utamanya:
   },
   "panelConfig": {
     "brightness": 200,
+    "panelCount": 3,
     "dimSchedule": {
       "enabled": true,
       "startTime": "22:00",
@@ -192,8 +193,7 @@ Struktur utamanya:
 | POST | `/api/messages/layout4` | Mengubah pesan/opsi Layout 4 |
 | POST | `/api/messages/layout5` | Mengubah kecepatan running text Layout 5 |
 | POST | `/api/layout1/prayer-times` | Mengatur item jadwal opsional Layout 1 |
-| POST | `/api/panel/brightness` | Mengubah kecerahan panel |
-| POST | `/api/panel/brightness-schedule` | Mengatur jadwal redup panel |
+| POST | `/api/panel/config` | Mengubah kecerahan, jadwal redup, dan jumlah panel |
 | POST | `/api/wifi/config` | Mengubah mode dan kredensial Wi-Fi |
 | POST | `/api/relay/config` | Mengubah timing scheduler relay |
 | POST | `/api/relay/prayer-states` | Mengaktifkan scheduler per waktu sholat |
@@ -400,26 +400,38 @@ direstart. Respons memuat `"restartRequired": true`.
 
 Jika mode STA gagal terhubung selama 15 detik, koneksi dianggap gagal.
 
-### `POST /api/panel/brightness`
+### `POST /api/panel/config`
 
-Mengubah kecerahan panel dan menyimpannya ke `panelConfig`.
+Mengubah konfigurasi panel dan menyimpannya ke `panelConfig`.
 
 ```json
 {
-  "brightness": 200
+  "brightness": 200,
+  "panelCount": 3,
+  "dimSchedule": {
+    "enabled": true,
+    "startTime": "22:00",
+    "endTime": "04:00",
+    "dimBrightness": 50
+  }
 }
 ```
 
-Nilai brightness adalah 0–255. Nilai `0` mematikan cahaya panel dan
-`255` adalah kecerahan maksimum. Perubahan diterapkan tanpa restart.
+- `brightness`: kecerahan normal panel, 0–255.
+- `panelCount`: jumlah panel P10 yang dipakai, 3–5.
+- `dimSchedule.enabled`: mengaktifkan atau mematikan jadwal.
+- `dimSchedule.startTime`: awal redup dalam format `HH:MM`.
+- `dimSchedule.endTime`: akhir redup dalam format `HH:MM`.
+- `dimSchedule.dimBrightness`: kecerahan selama jadwal, 0–255.
 
 Jika waktu sekarang berada dalam jadwal redup yang aktif, perubahan
 brightness normal disimpan tetapi panel tetap memakai
 `dimBrightness` sampai jadwal redup berakhir.
 
-### `POST /api/panel/brightness-schedule`
+#### Field jadwal redup kompatibel
 
-Mengatur jadwal redup berdasarkan waktu RTC.
+Selain format nested `dimSchedule`, field jadwal redup juga dapat
+dikirim langsung pada payload `/api/panel/config`.
 
 ```json
 {

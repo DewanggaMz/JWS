@@ -11,6 +11,7 @@
 #include "panel/Layout3SlideText.h"
 #include "panel/Layout4PrayerSchedule.h"
 #include "panel/Layout5PrayerCountdown.h"
+#include "panel/Layout6Lafadz.h"
 #include "panel/PanelAnimations.h"
 #include "utils/StaticObject.h"
 
@@ -25,16 +26,18 @@ StaticObject<Layout2FullRunning> layout2Storage;
 StaticObject<Layout3SlideText> layout3Storage;
 StaticObject<Layout4PrayerSchedule> layout4Storage;
 StaticObject<Layout5PrayerCountdown> layout5Storage;
+StaticObject<Layout6Lafadz> layout6Storage;
 Layout1Split *layout1 = nullptr;
 Layout2FullRunning *layout2 = nullptr;
 Layout3SlideText *layout3 = nullptr;
 Layout4PrayerSchedule *layout4 = nullptr;
 Layout5PrayerCountdown *layout5 = nullptr;
+Layout6Lafadz *layout6 = nullptr;
 SemaphoreHandle_t panelMessagesMutex = nullptr;
 PanelMessages pendingPanelMessages;
 bool panelMessagesUpdatePending = false;
-PanelConfig activePanelConfig{200, true, 1320, 240, 50};
-PanelConfig pendingPanelConfig{200, true, 1320, 240, 50};
+PanelConfig activePanelConfig{200, 3, true, 1320, 240, 50};
+PanelConfig pendingPanelConfig{200, 3, true, 1320, 240, 50};
 bool panelConfigUpdatePending = false;
 
 uint32_t lastFrameAt = 0;
@@ -162,6 +165,7 @@ bool setupPanelInit(
     schedule,
     messages.layout5SpeedMs
   );
+  layout6 = layout6Storage.create(dmd);
 
   layout1->setPrayerDisplayConfig(
     messages.layout1ShowImsak,
@@ -170,11 +174,12 @@ bool setupPanelInit(
   );
   layout1->setPrayerSchedule(schedule);
 
-  panelAnimations.addLayout(*layout1);
-  panelAnimations.addLayout(*layout3);
-  bool layoutsAdded = panelAnimations.addLayout(*layout4);
+  bool layoutsAdded = panelAnimations.addLayout(*layout1);
+  layoutsAdded &= panelAnimations.addLayout(*layout3);
+  layoutsAdded &= panelAnimations.addLayout(*layout4);
   layoutsAdded &= panelAnimations.addLayout(*layout5);
-  panelAnimations.addLayout(*layout2);
+  layoutsAdded &= panelAnimations.addLayout(*layout6);
+  layoutsAdded &= panelAnimations.addLayout(*layout2);
   if (!layoutsAdded) {
     return false;
   }

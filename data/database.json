@@ -30,6 +30,7 @@
   },
   "panelConfig": {
     "brightness": 200,
+    "panelCount": 3,
     "dimSchedule": {
       "enabled": true,
       "startTime": "22:00",

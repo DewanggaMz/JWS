@@ -88,11 +88,7 @@ void setupServer()
     {"/api/messages/layout5", handleLayout5MessagePostJson},
     {"/api/layout1/prayer-times", handleLayout1PrayerDisplayPostJson},
     {"/api/wifi/config", handleWiFiConfigPostJson},
-    {"/api/panel/brightness", handlePanelBrightnessPostJson},
-    {
-      "/api/panel/brightness-schedule",
-      handlePanelBrightnessSchedulePostJson
-    },
+    {"/api/panel/config", handlePanelConfigPostJson},
     {"/api/relay/config", handleRelayConfigPostJson},
     {"/api/relay/prayer-states", handleRelayPrayerStatesPostJson}
   };

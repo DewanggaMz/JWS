@@ -243,7 +243,7 @@ void handleWiFiConfigPostJson(
   sendJsonDocument(request, 200, response);
 }
 
-void handlePanelBrightnessPostJson(
+void handlePanelConfigPostJson(
   AsyncWebServerRequest *request,
   JsonVariant &json
 ) {
@@ -262,7 +262,7 @@ void handlePanelBrightnessPostJson(
     sendJsonResponse(
       request,
       500,
-      "Kecerahan tersimpan tetapi gagal diterapkan ke panel"
+      "Konfigurasi tersimpan tetapi gagal diterapkan ke panel"
     );
     return;
   }
@@ -271,38 +271,9 @@ void handlePanelBrightnessPostJson(
   response["success"] = true;
   response["message"] = message;
   response["panelConfig"]["brightness"] = config.brightness;
-  sendJsonDocument(request, 200, response);
-}
-
-void handlePanelBrightnessSchedulePostJson(
-  AsyncWebServerRequest *request,
-  JsonVariant &json
-) {
-  PanelConfig config;
-  String message;
-  if (!updatePanelBrightnessSchedule(
-        json.as<JsonVariantConst>(),
-        config,
-        message
-      )) {
-    sendJsonResponse(request, 400, message.c_str());
-    return;
-  }
-
-  if (!queuePanelConfigUpdate(config)) {
-    sendJsonResponse(
-      request,
-      500,
-      "Jadwal tersimpan tetapi gagal diterapkan ke panel"
-    );
-    return;
-  }
-
-  JsonDocument response;
-  response["success"] = true;
-  response["message"] = message;
+  response["panelConfig"]["panelCount"] = config.panelCount;
   JsonObject schedule =
-    response["dimSchedule"].to<JsonObject>();
+    response["panelConfig"]["dimSchedule"].to<JsonObject>();
   schedule["enabled"] = config.dimEnabled;
   schedule["startTime"] =
     formatPanelScheduleTime(config.dimStartMinutes);

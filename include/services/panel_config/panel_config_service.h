@@ -5,6 +5,7 @@
 
 struct PanelConfig {
   uint8_t brightness;
+  uint8_t panelCount;
   bool dimEnabled;
   uint16_t dimStartMinutes;
   uint16_t dimEndMinutes;
@@ -14,11 +15,6 @@ struct PanelConfig {
 bool ensurePanelConfig();
 bool loadPanelConfig(PanelConfig &config);
 bool updatePanelConfig(
-  JsonVariantConst payload,
-  PanelConfig &config,
-  String &message
-);
-bool updatePanelBrightnessSchedule(
   JsonVariantConst payload,
   PanelConfig &config,
   String &message
