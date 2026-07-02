@@ -147,7 +147,7 @@ Struktur utamanya:
   },
   "panelMessages": {
     "layout1": {
-      "bottom": "NAMA MASJID",
+      "message": "NAMA MASJID",
       "repeatCount": 3,
       "speedMs": 65,
       "prayerDisplay": {
@@ -157,17 +157,17 @@ Struktur utamanya:
       }
     },
     "layout2": {
-      "running": "PESAN LAYOUT 2",
+      "message": "PESAN LAYOUT 2",
       "speedMs": 70
     },
     "layout3": {
-      "slides": ["SLIDE 1", "SLIDE 2"]
+      "message": ["SLIDE 1", "SLIDE 2"]
     },
     "layout4": {
       "showPasaran": true,
       "showHijriDate": true,
       "repeatCount": 1,
-      "running": "PESAN LAYOUT 4",
+      "message": "PESAN LAYOUT 4",
       "speedMs": 55
     },
     "layout5": {
@@ -188,7 +188,7 @@ Struktur utamanya:
 | POST | `/time_adjust` | Mengatur tanggal dan waktu RTC |
 | POST | `/api/messages/layout1` | Mengubah pesan Layout 1 |
 | POST | `/api/messages/layout2` | Mengubah pesan Layout 2 |
-| POST | `/api/messages/layout3` | Mengubah slide Layout 3 |
+| POST | `/api/messages/layout3` | Mengubah message array Layout 3 |
 | POST | `/api/messages/layout4` | Mengubah pesan/opsi Layout 4 |
 | POST | `/api/messages/layout5` | Mengubah kecepatan running text Layout 5 |
 | POST | `/api/layout1/prayer-times` | Mengatur item jadwal opsional Layout 1 |
@@ -297,13 +297,13 @@ ikut diperbarui.
 
 ```json
 {
-  "bottom": "MASJID BAITUROHMAH",
+  "message": "MASJID BAITUROHMAH",
   "repeatCount": 3,
   "speedMs": 65
 }
 ```
 
-- `bottom`: string 1–512 karakter.
+- `message`: string 1–512 karakter.
 - `repeatCount`: angka 1–255.
 - `speedMs`: kecepatan running text 10–1000 ms.
 
@@ -311,19 +311,19 @@ ikut diperbarui.
 
 ```json
 {
-  "running": "INFORMASI KEGIATAN MASJID",
+  "message": "INFORMASI KEGIATAN MASJID",
   "speedMs": 70
 }
 ```
 
-`running` harus berupa string 1–512 karakter.
+`message` harus berupa string 1–512 karakter.
 `speedMs` harus antara 10–1000 ms.
 
 ### `POST /api/messages/layout3`
 
 ```json
 {
-  "slides": [
+  "message": [
     "10 MENIT",
     "LAGI",
     "MEMASUKI",
@@ -332,14 +332,14 @@ ikut diperbarui.
 }
 ```
 
-`slides` harus berisi 1–12 string. Setiap string maksimal 128
+`message` harus berisi 1–12 string. Setiap string maksimal 128
 karakter.
 
 ### `POST /api/messages/layout4`
 
 ```json
 {
-  "running": "JAGA KEBERSIHAN MASJID",
+  "message": "JAGA KEBERSIHAN MASJID",
   "showPasaran": true,
   "showHijriDate": true,
   "repeatCount": 1,
@@ -347,7 +347,7 @@ karakter.
 }
 ```
 
-- `running`: string 1–512 karakter.
+- `message`: string 1–512 karakter.
 - `showPasaran`: boolean.
 - `showHijriDate`: boolean.
 - `repeatCount`: angka 1–255.

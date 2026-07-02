@@ -57,7 +57,7 @@
   },
   "panelMessages": {
     "layout1": {
-      "bottom": "MASJID BAITUROHMAH-GUMUKMOJO      ",
+      "message": "MASJID BAITUROHMAH-GUMUKMOJO      ",
       "repeatCount": 3,
       "speedMs": 65,
       "prayerDisplay": {
@@ -67,11 +67,11 @@
       }
     },
     "layout2": {
-      "running": "LAYOUT 2  -  INFORMASI BERJALAN DI 3 PANEL P10      ",
+      "message": "LAYOUT 2  -  INFORMASI BERJALAN DI 3 PANEL P10      ",
       "speedMs": 70
     },
     "layout3": {
-      "slides": [
+      "message": [
         "10 MENIT",
         "LAGI",
         "MEMASUKI",
@@ -84,7 +84,7 @@
       "showPasaran": true,
       "showHijriDate": true,
       "repeatCount": 1,
-      "running": "JAGA KEBERSIHAN DAN KEKHUSYUKAN IBADAH      ",
+      "message": "JAGA KEBERSIHAN DAN KEKHUSYUKAN IBADAH      ",
       "speedMs": 55
     },
     "layout5": {

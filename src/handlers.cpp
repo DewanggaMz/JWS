@@ -49,19 +49,19 @@ void handlePanelLayoutMessagePostJson(
 
   JsonObject data = response["data"].to<JsonObject>();
   if (layoutNumber == 1) {
-    data["bottom"] = panelMessages.layout1Bottom;
+    data["message"] = panelMessages.layout1Bottom;
     data["repeatCount"] = panelMessages.layout1RepeatCount;
     data["speedMs"] = panelMessages.layout1SpeedMs;
   } else if (layoutNumber == 2) {
-    data["running"] = panelMessages.layout2Running;
+    data["message"] = panelMessages.layout2Running;
     data["speedMs"] = panelMessages.layout2SpeedMs;
   } else if (layoutNumber == 3) {
-    JsonArray slides = data["slides"].to<JsonArray>();
+    JsonArray slides = data["message"].to<JsonArray>();
     for (uint8_t i = 0; i < panelMessages.layout3SlideCount; i++) {
       slides.add(panelMessages.layout3Slides[i]);
     }
   } else if (layoutNumber == 4) {
-    data["running"] = panelMessages.layout4Running;
+    data["message"] = panelMessages.layout4Running;
     data["showPasaran"] = panelMessages.layout4ShowPasaran;
     data["showHijriDate"] = panelMessages.layout4ShowHijriDate;
     data["repeatCount"] = panelMessages.layout4RepeatCount;

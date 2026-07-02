@@ -136,6 +136,71 @@ bool copyNonEmptyString(JsonVariantConst source, String &target)
     return true;
 }
 
+bool ensureStringMessage(
+    JsonObject layout,
+    const char *legacyKey,
+    const char *defaultValue
+)
+{
+    bool changed = false;
+    if (!layout["message"].is<const char *>() ||
+        layout["message"].as<const char *>()[0] == '\0') {
+        const char *legacyValue = layout[legacyKey] | "";
+        layout["message"] =
+            legacyValue[0] == '\0' ? defaultValue : legacyValue;
+        changed = true;
+    }
+
+    if (!layout[legacyKey].isUnbound()) {
+        layout.remove(legacyKey);
+        changed = true;
+    }
+
+    return changed;
+}
+
+bool ensureLayout3Message(JsonObject layout)
+{
+    bool changed = false;
+    const bool validMessage =
+        layout["message"].is<JsonArray>() &&
+        layout["message"].as<JsonArray>().size() > 0;
+
+    if (!validMessage) {
+        JsonArray message = layout["message"].to<JsonArray>();
+        JsonArray legacySlides = layout["slides"].as<JsonArray>();
+        bool copiedLegacy = false;
+
+        if (!legacySlides.isNull()) {
+            for (JsonVariant slide : legacySlides) {
+                if (message.size() >= PanelMessages::MAX_LAYOUT3_SLIDES) {
+                    break;
+                }
+                JsonVariantConst slideValue = slide;
+                if (isValidMessage(slideValue, MAX_SLIDE_LENGTH)) {
+                    message.add(slideValue.as<const char *>());
+                    copiedLegacy = true;
+                }
+            }
+        }
+
+        if (!copiedLegacy) {
+            for (uint8_t i = 0; i < DEFAULT_LAYOUT3_SLIDE_COUNT; i++) {
+                message.add(DEFAULT_LAYOUT3_SLIDES[i]);
+            }
+        }
+
+        changed = true;
+    }
+
+    if (!layout["slides"].isUnbound()) {
+        layout.remove("slides");
+        changed = true;
+    }
+
+    return changed;
+}
+
 }
 
 void setDefaultPanelMessages(PanelMessages &messages)
@@ -196,7 +261,11 @@ bool ensurePanelMessages()
                            ? panelMessages["layout5"].as<JsonObject>()
                            : panelMessages["layout5"].to<JsonObject>();
 
-    changed |= setStringIfMissing(layout1, "bottom", DEFAULT_LAYOUT1_BOTTOM);
+    changed |= ensureStringMessage(
+        layout1,
+        "bottom",
+        DEFAULT_LAYOUT1_BOTTOM
+    );
     changed |= setPositiveIntegerIfMissing(
         layout1,
         "repeatCount",
@@ -222,7 +291,11 @@ bool ensurePanelMessages()
         "showDhuha",
         DEFAULT_LAYOUT1_SHOW_DHUHA
     );
-    changed |= setStringIfMissing(layout2, "running", DEFAULT_LAYOUT2_RUNNING);
+    changed |= ensureStringMessage(
+        layout2,
+        "running",
+        DEFAULT_LAYOUT2_RUNNING
+    );
     changed |= setSpeedIfMissing(layout2, DEFAULT_LAYOUT2_SPEED_MS);
     changed |= setBoolIfMissing(
         layout4,
@@ -242,23 +315,30 @@ bool ensurePanelMessages()
     changed |= setSpeedIfMissing(layout4, DEFAULT_LAYOUT4_SPEED_MS);
     changed |= setSpeedIfMissing(layout5, DEFAULT_LAYOUT5_SPEED_MS);
 
-    if (!layout4["running"].is<const char *>() ||
-        layout4["running"].as<const char *>()[0] == '\0') {
+    if (!layout4["message"].is<const char *>() ||
+        layout4["message"].as<const char *>()[0] == '\0') {
         const char *legacyBottom = layout4["bottom"] | "";
-        layout4["running"] =
-            strcmp(legacyBottom, LEGACY_LAYOUT4_BOTTOM) == 0 || legacyBottom[0] == '\0'
-              ? DEFAULT_LAYOUT4_RUNNING
-              : legacyBottom;
-        changed = true;
-    }
-
-    if (!layout3["slides"].is<JsonArray>() || layout3["slides"].size() == 0) {
-        JsonArray slides = layout3["slides"].to<JsonArray>();
-        for (uint8_t i = 0; i < DEFAULT_LAYOUT3_SLIDE_COUNT; i++) {
-            slides.add(DEFAULT_LAYOUT3_SLIDES[i]);
+        const char *legacyRunning = layout4["running"] | "";
+        if (legacyRunning[0] != '\0') {
+            layout4["message"] = legacyRunning;
+        } else if (strcmp(legacyBottom, LEGACY_LAYOUT4_BOTTOM) == 0 ||
+                   legacyBottom[0] == '\0') {
+            layout4["message"] = DEFAULT_LAYOUT4_RUNNING;
+        } else {
+            layout4["message"] = legacyBottom;
         }
         changed = true;
     }
+    if (!layout4["running"].isUnbound()) {
+        layout4.remove("running");
+        changed = true;
+    }
+    if (!layout4["bottom"].isUnbound()) {
+        layout4.remove("bottom");
+        changed = true;
+    }
+
+    changed |= ensureLayout3Message(layout3);
 
     return !changed || saveDatabase(database);
 }
@@ -273,7 +353,15 @@ bool loadPanelMessages(PanelMessages &messages)
     }
 
     JsonObjectConst panelMessages = database["panelMessages"].as<JsonObjectConst>();
-    copyNonEmptyString(panelMessages["layout1"]["bottom"], messages.layout1Bottom);
+    if (!copyNonEmptyString(
+          panelMessages["layout1"]["message"],
+          messages.layout1Bottom
+        )) {
+        copyNonEmptyString(
+            panelMessages["layout1"]["bottom"],
+            messages.layout1Bottom
+        );
+    }
     if (panelMessages["layout1"]["repeatCount"].is<int>()) {
         const int repeatCount =
             panelMessages["layout1"]["repeatCount"].as<int>();
@@ -299,12 +387,28 @@ bool loadPanelMessages(PanelMessages &messages)
         messages.layout1ShowDhuha =
             layout1PrayerDisplay["showDhuha"].as<bool>();
     }
-    copyNonEmptyString(panelMessages["layout2"]["running"], messages.layout2Running);
+    if (!copyNonEmptyString(
+          panelMessages["layout2"]["message"],
+          messages.layout2Running
+        )) {
+        copyNonEmptyString(
+            panelMessages["layout2"]["running"],
+            messages.layout2Running
+        );
+    }
     if (isValidSpeed(panelMessages["layout2"]["speedMs"])) {
         messages.layout2SpeedMs =
             panelMessages["layout2"]["speedMs"].as<uint16_t>();
     }
-    copyNonEmptyString(panelMessages["layout4"]["running"], messages.layout4Running);
+    if (!copyNonEmptyString(
+          panelMessages["layout4"]["message"],
+          messages.layout4Running
+        )) {
+        copyNonEmptyString(
+            panelMessages["layout4"]["running"],
+            messages.layout4Running
+        );
+    }
 
     if (panelMessages["layout4"]["showPasaran"].is<bool>()) {
         messages.layout4ShowPasaran =
@@ -337,7 +441,10 @@ bool loadPanelMessages(PanelMessages &messages)
             database["hijriConfig"]["correct"].as<int>();
     }
 
-    JsonArrayConst slides = panelMessages["layout3"]["slides"].as<JsonArrayConst>();
+    JsonArrayConst slides = panelMessages["layout3"]["message"].as<JsonArrayConst>();
+    if (slides.isNull()) {
+        slides = panelMessages["layout3"]["slides"].as<JsonArrayConst>();
+    }
     if (!slides.isNull()) {
         uint8_t count = 0;
         for (JsonVariantConst slide : slides) {
@@ -398,6 +505,13 @@ bool updatePanelLayoutMessages(
                           : panelMessages[layoutKey].to<JsonObject>();
     bool changed = false;
 
+    if (!input["bottom"].isUnbound() ||
+        !input["running"].isUnbound() ||
+        !input["slides"].isUnbound()) {
+        message = "Gunakan field message, bukan bottom, running, atau slides";
+        return false;
+    }
+
     if (layoutNumber != 3 && !input["speedMs"].isUnbound()) {
         if (!isValidSpeed(input["speedMs"])) {
             message = "Field speedMs harus berupa angka 10 sampai 1000";
@@ -408,12 +522,13 @@ bool updatePanelLayoutMessages(
     }
 
     if (layoutNumber == 1) {
-        if (!input["bottom"].isUnbound()) {
-            if (!isValidMessage(input["bottom"], MAX_MESSAGE_LENGTH)) {
-                message = "Field bottom wajib berupa string 1 sampai 512 karakter";
+        if (!input["message"].isUnbound()) {
+            if (!isValidMessage(input["message"], MAX_MESSAGE_LENGTH)) {
+                message = "Field message wajib berupa string 1 sampai 512 karakter";
                 return false;
             }
-            layout["bottom"] = input["bottom"].as<const char *>();
+            layout["message"] = input["message"].as<const char *>();
+            layout.remove("bottom");
             changed = true;
         }
 
@@ -426,45 +541,49 @@ bool updatePanelLayoutMessages(
             changed = true;
         }
     } else if (layoutNumber == 2) {
-        if (!input["running"].isUnbound()) {
-            if (!isValidMessage(input["running"], MAX_MESSAGE_LENGTH)) {
-                message = "Field running wajib berupa string 1 sampai 512 karakter";
+        if (!input["message"].isUnbound()) {
+            if (!isValidMessage(input["message"], MAX_MESSAGE_LENGTH)) {
+                message = "Field message wajib berupa string 1 sampai 512 karakter";
                 return false;
             }
-            layout["running"] = input["running"].as<const char *>();
+            layout["message"] = input["message"].as<const char *>();
+            layout.remove("running");
             changed = true;
         }
     } else if (layoutNumber == 3) {
-        if (!input["slides"].isUnbound()) {
-            if (!input["slides"].is<JsonArrayConst>()) {
-                message = "Field slides harus berupa array string";
+        if (!input["message"].isUnbound()) {
+            if (!input["message"].is<JsonArrayConst>()) {
+                message = "Field message harus berupa array string";
                 return false;
             }
 
-            JsonArrayConst slides = input["slides"].as<JsonArrayConst>();
+            JsonArrayConst slides = input["message"].as<JsonArrayConst>();
             if (slides.size() == 0 ||
                 slides.size() > PanelMessages::MAX_LAYOUT3_SLIDES) {
-                message = "Field slides harus berisi 1 sampai 12 item";
+                message = "Field message harus berisi 1 sampai 12 item";
                 return false;
             }
 
             for (JsonVariantConst slide : slides) {
                 if (!isValidMessage(slide, MAX_SLIDE_LENGTH)) {
-                    message = "Setiap slide wajib berupa string 1 sampai 128 karakter";
+                    message = "Setiap message slide wajib berupa string 1 sampai 128 karakter";
                     return false;
                 }
             }
 
-            layout["slides"].set(slides);
+            layout["message"].set(slides);
+            layout.remove("slides");
             changed = true;
         }
     } else if (layoutNumber == 4) {
-        if (!input["running"].isUnbound()) {
-            if (!isValidMessage(input["running"], MAX_MESSAGE_LENGTH)) {
-                message = "Field running wajib berupa string 1 sampai 512 karakter";
+        if (!input["message"].isUnbound()) {
+            if (!isValidMessage(input["message"], MAX_MESSAGE_LENGTH)) {
+                message = "Field message wajib berupa string 1 sampai 512 karakter";
                 return false;
             }
-            layout["running"] = input["running"].as<const char *>();
+            layout["message"] = input["message"].as<const char *>();
+            layout.remove("running");
+            layout.remove("bottom");
             changed = true;
         }
 
